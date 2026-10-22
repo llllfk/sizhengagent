@@ -1,0 +1,365 @@
+@import "tailwindcss";
+
+:root {
+  /* 客户主色：暖橘 + 白 */
+  --orange: #e8782f;
+  --orange-deep: #c45c1a;
+  --orange-soft: #f6c79a;
+  --orange-fog: #fff1e6;
+  --white: #ffffff;
+  --paper: #fff8f2;
+  --ink: #3d2a1a;
+  --muted: #8a735c;
+  --line: #f0ddd0;
+
+  /* 兼容旧变量名 */
+  --gold: #e8782f;
+  --gold-deep: #c45c1a;
+  --vermilion: #d4552a;
+  --sun: #f08a3a;
+  --sky: #e8782f;
+  --sky-deep: #c45c1a;
+  --cloud: #fff8f2;
+  --glass: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(232, 120, 47, 0.22);
+  --muted-on-dark: rgba(61, 42, 26, 0.65);
+
+  --color-ink: #3d2a1a;
+  --color-paper: #fff8f2;
+  --color-sky: #c45c1a;
+  --color-cabin: #e8782f;
+  --color-accent: #d4552a;
+  --color-muted: #8a735c;
+  --color-line: #f0ddd0;
+}
+
+html,
+body {
+  min-height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--ink);
+  background: var(--paper);
+  font-family: var(--font-body), "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.font-display {
+  font-family: var(--font-display), "KaiTi", "STKaiti", serif;
+}
+
+.font-brand {
+  font-family: var(--font-brand), "Ma Shan Zheng", "KaiTi", cursive;
+}
+
+.portal-root {
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.portal-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 12px 40px rgba(196, 92, 26, 0.08),
+    0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+@keyframes drift-cloud {
+  0% {
+    transform: scale(1.06) translate3d(1.8%, 0.4%, 0);
+  }
+  50% {
+    transform: scale(1.08) translate3d(-0.6%, -0.3%, 0);
+  }
+  100% {
+    transform: scale(1.06) translate3d(-1.8%, 0.4%, 0);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes sun-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes ray-sweep {
+  0% {
+    opacity: 0.2;
+    transform: rotate(-6deg) translateX(-1%);
+  }
+  100% {
+    opacity: 0.45;
+    transform: rotate(3deg) translateX(1%);
+  }
+}
+
+@keyframes gold-shimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes brand-glow {
+  0%,
+  100% {
+    text-shadow: 0 2px 12px rgba(232, 120, 47, 0.2);
+  }
+  50% {
+    text-shadow:
+      0 2px 18px rgba(232, 120, 47, 0.35),
+      0 0 28px rgba(246, 199, 154, 0.5);
+  }
+}
+
+@keyframes panel-breathe {
+  0%,
+  100% {
+    box-shadow:
+      0 16px 48px rgba(196, 92, 26, 0.1),
+      0 0 0 1px rgba(232, 120, 47, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 20px 56px rgba(196, 92, 26, 0.16),
+      0 0 0 1px rgba(232, 120, 47, 0.35),
+      0 0 36px rgba(246, 199, 154, 0.45);
+  }
+}
+
+@keyframes float-particle {
+  0% {
+    transform: translate3d(0, 12px, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.75;
+  }
+  85% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate3d(10px, -110vh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes btn-shine {
+  0% {
+    transform: translateX(-120%) skewX(-18deg);
+  }
+  100% {
+    transform: translateX(220%) skewX(-18deg);
+  }
+}
+
+@keyframes corner-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes line-draw {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes trail-dash {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+@keyframes trail-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-rise {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-rise-delay-1 {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+}
+
+.animate-rise-delay-2 {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.24s both;
+}
+
+.animate-rise-delay-3 {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+}
+
+.animate-rise-delay-4 {
+  animation: rise-in 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.48s both;
+}
+
+.animate-sun {
+  animation: sun-pulse 7s ease-in-out infinite;
+}
+
+.animate-cloud {
+  animation: drift-cloud 18s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+.animate-rays {
+  animation: ray-sweep 14s ease-in-out infinite alternate;
+}
+
+.animate-brand-glow {
+  animation: brand-glow 3.6s ease-in-out infinite;
+}
+
+.animate-panel-breathe {
+  animation: panel-breathe 4.5s ease-in-out infinite;
+}
+
+.animate-corner {
+  animation: corner-pulse 2.8s ease-in-out infinite;
+}
+
+.gold-shimmer-text {
+  background: linear-gradient(
+    105deg,
+    #c45c1a 0%,
+    #e8782f 28%,
+    #f6c79a 48%,
+    #e8782f 72%,
+    #c45c1a 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: gold-shimmer 4.5s linear infinite;
+}
+
+.stat-underline {
+  transform-origin: left;
+  animation: line-draw 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+}
+
+.login-btn {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.2s ease,
+    filter 0.2s ease;
+}
+
+.login-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  transform: translateX(-120%) skewX(-18deg);
+}
+
+.login-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.login-btn:hover:not(:disabled)::after {
+  animation: btn-shine 0.85s ease;
+}
+
+.login-btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.particle {
+  position: absolute;
+  bottom: -8px;
+  width: 3px;
+  height: 3px;
+  border-radius: 9999px;
+  background: rgba(232, 120, 47, 0.75);
+  box-shadow: 0 0 8px rgba(246, 199, 154, 0.9);
+  animation: float-particle linear infinite;
+}
+
+.flight-trail-path {
+  stroke-dasharray: 1.4 1.8;
+  animation:
+    trail-fade-in 1.2s ease-out 1.8s both,
+    trail-dash 6s linear 2.8s infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-rise-delay-1,
+  .animate-rise-delay-2,
+  .animate-rise-delay-3,
+  .animate-rise-delay-4,
+  .animate-sun,
+  .animate-cloud,
+  .animate-rays,
+  .animate-brand-glow,
+  .animate-panel-breathe,
+  .animate-corner,
+  .gold-shimmer-text,
+  .stat-underline,
+  .particle,
+  .flight-trail-path,
+  .login-btn:hover:not(:disabled)::after {
+    animation: none !important;
+  }
+
+  .gold-shimmer-text {
+    color: var(--orange);
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
+  }
+
+  .flight-dot {
+    display: none;
+  }
+}

@@ -1,0 +1,28 @@
+import { Panel } from "@/components/ui/Card";
+import { CompanionChat } from "@/components/shared/CompanionChat";
+
+export default function CompanionPage() {
+  return (
+    <div className="space-y-6">
+      <header className="animate-rise space-y-3">
+        <p className="text-[11px] tracking-[0.3em] text-[var(--orange)]">
+          讲深 · 一阶 · 苏格拉底追问
+        </p>
+        <h1 className="font-brand text-4xl text-[var(--ink)] md:text-5xl">
+          启发式答疑
+        </h1>
+        <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
+          24 小时在线智能学伴。不直接给答案，按「你怎么看 → 依据是什么 →
+          换个情境」引导思考；满轮未解将自动转交老师跟进。
+        </p>
+      </header>
+
+      <Panel
+        title="与学伴对话"
+        hint="点选示例即可开场 · 未解难题会自动进入老师的疑难队列"
+      >
+        <CompanionChat />
+      </Panel>
+    </div>
+  );
+}
