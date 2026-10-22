@@ -28,3 +28,6 @@ next-env.d.ts
 # local extract / temp
 _extracted/
 tmp/
+
+# preview port declaration
+.preview
