@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useSession } from "@/components/shared/useSession";
 import { cn } from "@/lib/utils";
 
 type Task = {
@@ -22,18 +23,20 @@ const typeLabel: Record<string, string> = {
 };
 
 export function TaskCenter() {
+  const { user, studentId } = useSession();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/task/assign?student_id=demo-student");
+    const res = await fetch("/api/task/assign");
     const json = await res.json();
     setTasks(json.data ?? []);
   }, []);
 
   useEffect(() => {
+    if (!studentId) return;
     void load();
-  }, [load]);
+  }, [load, studentId]);
 
   async function claimMore() {
     setBusy(true);
@@ -41,7 +44,7 @@ export function TaskCenter() {
       await fetch("/api/task/assign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ student_id: "demo-student" }),
+        body: JSON.stringify({}),
       });
       await load();
     } finally {
@@ -67,18 +70,31 @@ export function TaskCenter() {
     }
   }
 
+  const tagHint = tasks[0]?.type_tag
+    ? typeLabel[tasks[0].type_tag] ?? tasks[0].type_tag
+    : null;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-[var(--muted)]">
-          按学情画像自动匹配任务类型（当前演示学员：创作型）
+          按学情画像自动匹配任务
+          {user ? ` · ${user.display_name}` : ""}
+          {tagHint ? `（${tagHint}）` : ""}
         </p>
-        <Button type="button" variant="ghost" disabled={busy} onClick={() => void claimMore()}>
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={busy || !studentId}
+          onClick={() => void claimMore()}
+        >
           再领一项
         </Button>
       </div>
 
-      {tasks.length === 0 ? (
+      {!studentId ? (
+        <p className="text-sm text-[var(--muted)]">请先以学生身份登录。</p>
+      ) : tasks.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">暂无任务，点击「再领一项」。</p>
       ) : (
         <ul className="space-y-3">
@@ -95,7 +111,8 @@ export function TaskCenter() {
                   className={cn(
                     "rounded-sm px-2 py-0.5 text-[11px]",
                     t.status === "done" && "bg-emerald-50 text-emerald-700",
-                    t.status === "doing" && "bg-[var(--orange)]/10 text-[var(--orange)]",
+                    t.status === "doing" &&
+                      "bg-[var(--orange)]/10 text-[var(--orange)]",
                     t.status === "todo" && "bg-black/5 text-[var(--muted)]",
                   )}
                 >

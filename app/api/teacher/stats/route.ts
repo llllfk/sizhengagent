@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
-import { workbenchStats } from "@/lib/mock/store";
+import { jsonError } from "@/lib/api/errors";
+import { requireTeacher } from "@/lib/auth/session";
+import { workbenchStats } from "@/lib/repo";
 
-/** GET /api/teacher/stats — 工作台概览数字 */
 export async function GET() {
-  return NextResponse.json({ data: workbenchStats(), mock: true });
+  try {
+    await requireTeacher();
+    return NextResponse.json({ data: await workbenchStats() });
+  } catch (e) {
+    return jsonError(e, "读取统计失败");
+  }
 }

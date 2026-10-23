@@ -1,18 +1,22 @@
 import { NextResponse } from "next/server";
-import { analyticsBundle, weeklyReportDraft } from "@/lib/mock/tasks";
+import { jsonError } from "@/lib/api/errors";
+import { requireTeacher } from "@/lib/auth/session";
+import { analyticsBundle, weeklyReportDraft } from "@/lib/repo";
 
-/** GET /api/teacher/analytics */
 export async function GET() {
-  return NextResponse.json({
-    data: analyticsBundle(),
-    mock: true,
-  });
+  try {
+    await requireTeacher();
+    return NextResponse.json({ data: await analyticsBundle() });
+  } catch (e) {
+    return jsonError(e, "读取学情失败");
+  }
 }
 
-/** POST /api/teacher/analytics — 生成周报草稿 */
 export async function POST() {
-  return NextResponse.json({
-    data: weeklyReportDraft(),
-    mock: true,
-  });
+  try {
+    await requireTeacher();
+    return NextResponse.json({ data: await weeklyReportDraft() });
+  } catch (e) {
+    return jsonError(e, "生成周报失败");
+  }
 }

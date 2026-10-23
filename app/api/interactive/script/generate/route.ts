@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generateScript } from "@/lib/mock/interactive";
+import { jsonError } from "@/lib/api/errors";
+import { requireUser } from "@/lib/auth/session";
+import { generateScript } from "@/lib/interactive/rooms";
 
-/** POST /api/interactive/script/generate */
 export async function POST(request: NextRequest) {
   try {
+    await requireUser();
     const body = await request.json();
     const roomId = String(body.room_id ?? "");
     if (!roomId) {
@@ -20,9 +22,8 @@ export async function POST(request: NextRequest) {
         body: room.script_body,
         lines: room.script_lines.length,
       },
-      mock: true,
     });
-  } catch {
-    return NextResponse.json({ error: "剧本生成失败" }, { status: 500 });
+  } catch (e) {
+    return jsonError(e, "剧本生成失败");
   }
 }

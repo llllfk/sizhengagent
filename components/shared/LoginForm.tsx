@@ -2,36 +2,42 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { writeTabPortal } from "@/lib/auth/portalClient";
 import { cn } from "@/lib/utils";
 
-type Role = "student" | "teacher" | "community";
+type Portal = "student" | "teacher" | "community";
 
-const roles: Array<{ id: Role; label: string; hint: string; href: string }> = [
+const portals: Array<{
+  id: Portal;
+  label: string;
+  hint: string;
+}> = [
+  { id: "student", label: "学生学伴", hint: "答疑 · 互动 · 创作" },
+  { id: "teacher", label: "教师工作台", hint: "调度 · 学情 · 账号" },
+  { id: "community", label: "研讨社区", hint: "议题 · 精华" },
+];
+
+const DEMO_ACCOUNTS = [
+  { portal: "teacher" as const, user: "T001", pass: "123456", name: "李老师" },
   {
-    id: "student",
-    label: "学生学伴",
-    hint: "答疑 · 互动 · 创作",
-    href: "/companion",
+    portal: "student" as const,
+    user: "S2026001",
+    pass: "123456",
+    name: "林晓航",
   },
   {
-    id: "teacher",
-    label: "教师工作台",
-    hint: "调度 · 学情 · 周报",
-    href: "/workbench",
-  },
-  {
-    id: "community",
-    label: "研讨社区",
-    hint: "议题 · 精华",
-    href: "/forum",
+    portal: "student" as const,
+    user: "S2026008",
+    pass: "123456",
+    name: "陈思远",
   },
 ];
 
 export function LoginForm() {
   const router = useRouter();
-  const [role, setRole] = useState<Role>("student");
-  const [account, setAccount] = useState("");
-  const [password, setPassword] = useState("");
+  const [portal, setPortal] = useState<Portal>("student");
+  const [account, setAccount] = useState("S2026001");
+  const [password, setPassword] = useState("123456");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -43,22 +49,48 @@ export function LoginForm() {
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 720));
-    const target = roles.find((r) => r.id === role)?.href ?? "/companion";
-    router.push(target);
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: account.trim(),
+          password,
+          portal,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "登录失败");
+      writeTabPortal(portal);
+      const dest = String(json.data.href || "/companion");
+      router.push(
+        `/embark?to=${encodeURIComponent(dest)}&portal=${encodeURIComponent(portal)}`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "登录失败");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function fillDemo(row: (typeof DEMO_ACCOUNTS)[number]) {
+    setPortal(row.portal === "teacher" ? "teacher" : "student");
+    setAccount(row.user);
+    setPassword(row.pass);
+    setError("");
   }
 
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid grid-cols-3 gap-2">
-        {roles.map((r) => (
+        {portals.map((r) => (
           <button
             key={r.id}
             type="button"
-            onClick={() => setRole(r.id)}
+            onClick={() => setPortal(r.id)}
             className={cn(
               "rounded-sm border px-2 py-2.5 text-left transition duration-200",
-              role === r.id
+              portal === r.id
                 ? "border-[var(--orange)] bg-[var(--orange-fog)] text-[var(--orange-deep)] shadow-[0_0_16px_rgba(232,120,47,0.18)]"
                 : "border-[var(--line)] bg-white text-[var(--muted)] hover:border-[var(--orange-soft)]",
             )}
@@ -119,9 +151,27 @@ export function LoginForm() {
         </span>
       </button>
 
-      <p className="text-center text-[11px] leading-relaxed text-[var(--muted)]">
-        演示环境可任意账号密码登录
-      </p>
+      <div className="space-y-2 border-t border-[var(--line)] pt-3">
+        <p className="text-[10px] tracking-[0.2em] text-[var(--muted)]">
+          测试账号（密码均为 123456）
+        </p>
+        <div className="flex flex-col gap-1.5">
+          {DEMO_ACCOUNTS.map((d) => (
+            <button
+              key={d.user}
+              type="button"
+              onClick={() => fillDemo(d)}
+              className="rounded-sm border border-dashed border-[var(--line)] bg-white px-2.5 py-1.5 text-left text-[11px] text-[var(--ink)] transition hover:border-[var(--orange)] hover:bg-[var(--orange-fog)]"
+            >
+              <span className="text-[var(--orange-deep)]">
+                {d.portal === "teacher" ? "教师" : "学生"}
+              </span>
+              {" · "}
+              {d.name}（{d.user}）
+            </button>
+          ))}
+        </div>
+      </div>
     </form>
   );
 }

@@ -1,20 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
-import { archiveWork, listWorks, saveVideoStep } from "@/lib/mock/tasks";
+import { jsonError } from "@/lib/api/errors";
+import { requireTeacher, studentIdFromSession } from "@/lib/auth/session";
+import { archiveWork, listWorks, saveVideoStep } from "@/lib/repo";
 
-/** GET /api/works/upload?student_id= */
 export async function GET(request: NextRequest) {
-  const studentId = request.nextUrl.searchParams.get("student_id") ?? undefined;
-  return NextResponse.json({
-    data: listWorks(studentId ?? undefined),
-    mock: true,
-  });
+  try {
+    const q = request.nextUrl.searchParams.get("student_id");
+    let studentId: string | undefined;
+    try {
+      studentId = await studentIdFromSession();
+    } catch {
+      await requireTeacher();
+      studentId = q ?? undefined;
+    }
+    return NextResponse.json({
+      data: await listWorks(studentId),
+    });
+  } catch (e) {
+    return jsonError(e, "读取作品失败");
+  }
 }
 
-/** POST /api/works/upload — 作品归档 */
 export async function POST(request: NextRequest) {
   try {
+    const studentId = await studentIdFromSession();
     const body = await request.json();
-    const studentId = String(body.student_id ?? "demo-student");
     const type = String(body.type ?? "short_video");
     const title = String(body.title ?? "未命名作品").trim();
     const fileUri = String(body.file_uri ?? "").trim();
@@ -26,26 +36,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const work = archiveWork({
+    const work = await archiveWork({
       student_id: studentId,
       type,
       title,
       file_uri: fileUri,
     });
 
-    saveVideoStep(studentId, { file_uri: fileUri, step: 4 });
+    await saveVideoStep(studentId, { file_uri: fileUri, step: 4 });
 
     return NextResponse.json(
-      {
-        data: {
-          ...work,
-          note: "已入库作品成果库（Mock）",
-        },
-        mock: true,
-      },
+      { data: { ...work, note: "已入库作品成果库" } },
       { status: 201 },
     );
-  } catch {
-    return NextResponse.json({ error: "归档失败" }, { status: 500 });
+  } catch (e) {
+    return jsonError(e, "归档失败");
   }
 }

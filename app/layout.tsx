@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Ma_Shan_Zheng, Noto_Serif_SC, Noto_Sans_SC } from "next/font/google";
+import { PageProgress } from "@/components/shared/PageProgress";
 import "./globals.css";
 
 const brand = Ma_Shan_Zheng({
@@ -39,6 +40,7 @@ export default function RootLayout({
       <body
         className={`${brand.variable} ${display.variable} ${body.variable} min-h-screen antialiased`}
       >
+        <PageProgress />
         {children}
       </body>
     </html>

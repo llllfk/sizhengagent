@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { DbGate } from "@/components/shared/DbGate";
 import { DemoStoryStrip } from "@/components/shared/DemoStoryStrip";
+import { useSession } from "@/components/shared/useSession";
 import { cn } from "@/lib/utils";
 
 export type NavItem = { href: string; label: string; tag?: string };
@@ -31,6 +33,7 @@ export function PortalShell({
 }) {
   const pathname = usePathname();
   const meta = toneMeta[tone];
+  const { user } = useSession();
 
   return (
     <div className="portal-root relative min-h-dvh overflow-x-hidden">
@@ -72,12 +75,39 @@ export function PortalShell({
               </h1>
             </div>
           </div>
-          <Link
-            href="/"
-            className="shrink-0 rounded-sm border border-[var(--line)] bg-white px-3 py-1.5 text-[11px] text-[var(--muted)] transition hover:border-[var(--orange)] hover:text-[var(--orange)]"
-          >
-            退出登录
-          </Link>
+          <div className="flex shrink-0 items-center gap-2">
+            {user ? (
+              <span className="hidden text-[11px] text-[var(--muted)] sm:inline">
+                {user.display_name}
+                <span className="mx-1 text-[var(--line)]">·</span>
+                {user.role === "teacher" ? "教师" : user.student_id || user.username}
+              </span>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => {
+                const portal =
+                  typeof window !== "undefined"
+                    ? window.sessionStorage.getItem("qihang_portal")
+                    : null;
+                void fetch("/api/auth/logout", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ portal }),
+                }).finally(() => {
+                  try {
+                    window.sessionStorage.removeItem("qihang_portal");
+                  } catch {
+                    /* ignore */
+                  }
+                  window.location.href = "/";
+                });
+              }}
+              className="rounded-sm border border-[var(--line)] bg-white px-3 py-1.5 text-[11px] text-[var(--muted)] transition hover:border-[var(--orange)] hover:text-[var(--orange)]"
+            >
+              退出登录
+            </button>
+          </div>
         </div>
 
         <nav className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-3 md:px-8">
@@ -102,9 +132,22 @@ export function PortalShell({
         </nav>
       </header>
 
-      <main className="relative z-10 mx-auto w-full max-w-6xl animate-rise px-5 py-6 md:px-8 md:py-8">
-        <DemoStoryStrip tone={tone} />
-        {children}
+      <main
+        className={cn(
+          "relative z-10 mx-auto w-full animate-rise px-5 py-6 md:px-8 md:py-8",
+          pathname.startsWith("/works")
+            ? "max-w-[1040px]"
+            : pathname.startsWith("/workbench") || pathname.startsWith("/modules")
+              ? "max-w-7xl"
+              : "max-w-6xl",
+        )}
+      >
+        {!pathname.startsWith("/works") &&
+        !pathname.startsWith("/workbench") &&
+        !pathname.startsWith("/modules") ? (
+          <DemoStoryStrip tone={tone} />
+        ) : null}
+        <DbGate>{children}</DbGate>
       </main>
     </div>
   );

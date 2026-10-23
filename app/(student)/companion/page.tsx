@@ -19,7 +19,7 @@ export default function CompanionPage() {
 
       <Panel
         title="与学伴对话"
-        hint="点选示例即可开场 · 未解难题会自动进入老师的疑难队列"
+        hint="左侧追问 · 右侧检索命中闪现 · 未解自动进教师队列"
       >
         <CompanionChat />
       </Panel>
