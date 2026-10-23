@@ -46,6 +46,68 @@ body {
   font-family: var(--font-body), "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
+/* —— 全站滚动条 · 暖橘细轨 —— */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 120, 47, 0.45) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 9999px;
+  background-clip: padding-box;
+  background-color: rgba(232, 120, 47, 0.32);
+  background-image: linear-gradient(
+    180deg,
+    rgba(246, 199, 154, 0.85),
+    rgba(232, 120, 47, 0.75),
+    rgba(196, 92, 26, 0.7)
+  );
+  transition: background-color 0.2s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(232, 120, 47, 0.55);
+  background-image: linear-gradient(
+    180deg,
+    #f6c79a,
+    #e8782f,
+    #c45c1a
+  );
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-image: linear-gradient(180deg, #e8782f, #c45c1a);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* 对话 / 侧栏等窄轨区域可加 class="scroll-soft" */
+.scroll-soft {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 120, 47, 0.4) rgba(255, 241, 230, 0.5);
+}
+
+.scroll-soft::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scroll-soft::-webkit-scrollbar-thumb {
+  border-width: 1px;
+}
+
 .font-display {
   font-family: var(--font-display), "KaiTi", "STKaiti", serif;
 }
