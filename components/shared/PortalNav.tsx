@@ -77,36 +77,47 @@ export function PortalShell({
           </div>
           <div className="flex shrink-0 items-center gap-2">
             {user ? (
-              <span className="hidden text-[11px] text-[var(--muted)] sm:inline">
-                {user.display_name}
-                <span className="mx-1 text-[var(--line)]">·</span>
-                {user.role === "teacher" ? "教师" : user.student_id || user.username}
-              </span>
-            ) : null}
-            <button
-              type="button"
-              onClick={() => {
-                const portal =
-                  typeof window !== "undefined"
-                    ? window.sessionStorage.getItem("qihang_portal")
-                    : null;
-                void fetch("/api/auth/logout", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ portal }),
-                }).finally(() => {
-                  try {
-                    window.sessionStorage.removeItem("qihang_portal");
-                  } catch {
-                    /* ignore */
-                  }
-                  window.location.href = "/";
-                });
-              }}
-              className="rounded-sm border border-[var(--line)] bg-white px-3 py-1.5 text-[11px] text-[var(--muted)] transition hover:border-[var(--orange)] hover:text-[var(--orange)]"
-            >
-              退出登录
-            </button>
+              <>
+                <span className="hidden text-[11px] text-[var(--muted)] sm:inline">
+                  {user.display_name}
+                  <span className="mx-1 text-[var(--line)]">·</span>
+                  {user.role === "teacher"
+                    ? "教师"
+                    : user.student_id || user.username}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const portal =
+                      typeof window !== "undefined"
+                        ? window.sessionStorage.getItem("qihang_portal")
+                        : null;
+                    void fetch("/api/auth/logout", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ portal }),
+                    }).finally(() => {
+                      try {
+                        window.sessionStorage.removeItem("qihang_portal");
+                      } catch {
+                        /* ignore */
+                      }
+                      window.location.href = "/";
+                    });
+                  }}
+                  className="rounded-sm border border-[var(--line)] bg-white px-3 py-1.5 text-[11px] text-[var(--muted)] transition hover:border-[var(--orange)] hover:text-[var(--orange)]"
+                >
+                  退出登录
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/"
+                className="rounded-sm border border-[var(--orange)]/40 bg-[var(--orange-fog)] px-3 py-1.5 text-[11px] text-[var(--orange-deep)] transition hover:border-[var(--orange)]"
+              >
+                去登录
+              </Link>
+            )}
           </div>
         </div>
 

@@ -56,6 +56,10 @@ export function CompanionChat() {
   const needStudent = !sessionLoading && !isStudent;
 
   useEffect(() => {
+    writeTabPortal("student");
+  }, []);
+
+  useEffect(() => {
     if (!scanning) return;
     const t = window.setTimeout(() => setScanning(false), 900);
     return () => window.clearTimeout(t);
