@@ -151,10 +151,12 @@ export class AuthError extends Error {
   }
 }
 
+/** 会话 Cookie 基础项。Coze/CDN 常把多条 Set-Cookie 拼成一行，勿在同响应里混「写入」与「Max-Age=0 清空」。 */
 export const sessionCookieOptions = {
   httpOnly: true,
   sameSite: "lax" as const,
   path: "/",
-  secure: process.env.NODE_ENV === "production",
+  // 预览域强制 HTTPS（HSTS）；缺 Secure 时部分代理/浏览器会丢掉会话
+  secure: true,
   maxAge: 60 * 60 * 24 * 7,
 };

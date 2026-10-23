@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { writeTabPortal } from "@/lib/auth/portalClient";
 import { cn } from "@/lib/utils";
@@ -59,7 +59,6 @@ function safeNext(raw: string | null) {
 }
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [portal, setPortal] = useState<Portal>("student");
   const [account, setAccount] = useState("S2026001");
@@ -104,7 +103,8 @@ export function LoginForm() {
       const dest =
         safeNext(searchParams.get("next")) ||
         String(json.data.href || "/companion");
-      router.push(
+      // 整页跳转，确保随后请求带上刚写入的 Set-Cookie
+      window.location.assign(
         `/embark?to=${encodeURIComponent(dest)}&portal=${encodeURIComponent(portal)}`,
       );
     } catch (err) {

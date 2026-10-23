@@ -55,8 +55,11 @@ export function CompanionChat() {
     writeTabPortal("student");
   }, []);
 
+  // 未登录回登录页；略延迟，避免与刚写入的 Cookie / me 竞态误踢
   useEffect(() => {
-    if (needLogin) goLogin();
+    if (!needLogin) return;
+    const t = window.setTimeout(() => goLogin(), 400);
+    return () => window.clearTimeout(t);
   }, [needLogin]);
 
   useEffect(() => {

@@ -56,14 +56,11 @@ export async function POST(request: NextRequest) {
     const res = NextResponse.json({
       data: { user, href, portal },
     });
-    // 分端写入，不覆盖另一端，便于同浏览器双开师生
+    // 分端写入；同时写入旧版通用 cookie 作兜底。
+    // 注意：不要在同一次响应里再 Set-Cookie Max-Age=0 清空另一条——
+    // Coze CDN 会把多条拼成一行，SameSite=lax 后跟逗号会被浏览器判无效并丢弃会话。
     res.cookies.set(sessionCookieName(portal), token, sessionCookieOptions);
-    // 清掉旧版单 cookie，避免后登录的一端覆盖前一端的「当前身份」误读
-    res.cookies.set(SESSION_COOKIE, "", {
-      httpOnly: true,
-      path: "/",
-      maxAge: 0,
-    });
+    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
     return res;
   } catch (e) {
     return jsonError(e, "登录失败");

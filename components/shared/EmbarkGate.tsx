@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { writeTabPortal, type TabPortal } from "@/lib/auth/portalClient";
 import { cn } from "@/lib/utils";
@@ -45,7 +44,6 @@ export function EmbarkGate({
   next: string;
   portal: string;
 }) {
-  const router = useRouter();
   const href = useMemo(() => safeNext(next), [next]);
   const line = PORTAL_LINE[portal] ?? PORTAL_LINE.student;
   const [phase, setPhase] = useState<"in" | "hold" | "out">("in");
@@ -60,29 +58,32 @@ export function EmbarkGate({
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    const go = () => {
+      setGone(true);
+      // 硬跳转，避免客户端路由偶发不带上刚登录的 Cookie
+      window.location.replace(href);
+    };
+
     if (reduce) {
-      router.replace(href);
+      go();
       return;
     }
 
     const tHold = window.setTimeout(() => setPhase("hold"), 480);
     const tOut = window.setTimeout(() => setPhase("out"), 1680);
-    const tGo = window.setTimeout(() => {
-      setGone(true);
-      router.replace(href);
-    }, 2100);
+    const tGo = window.setTimeout(go, 2100);
 
     return () => {
       window.clearTimeout(tHold);
       window.clearTimeout(tOut);
       window.clearTimeout(tGo);
     };
-  }, [href, router]);
+  }, [href, portal]);
 
   function skip() {
     if (gone) return;
     setGone(true);
-    router.replace(href);
+    window.location.replace(href);
   }
 
   return (
