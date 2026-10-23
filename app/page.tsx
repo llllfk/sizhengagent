@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Image from "next/image";
 import { FlightTrail } from "@/components/shared/FlightTrail";
 import { LoginForm } from "@/components/shared/LoginForm";
@@ -145,7 +146,15 @@ export default function LoginPage() {
               </p>
             </div>
 
-            <LoginForm />
+            <Suspense
+              fallback={
+                <p className="animate-pulse text-sm text-[var(--muted)]">
+                  加载登录…
+                </p>
+              }
+            >
+              <LoginForm />
+            </Suspense>
           </div>
         </section>
       </div>

@@ -111,12 +111,17 @@ export function PortalShell({
                 </button>
               </>
             ) : (
-              <Link
-                href="/"
-                className="rounded-sm border border-[var(--orange)]/40 bg-[var(--orange-fog)] px-3 py-1.5 text-[11px] text-[var(--orange-deep)] transition hover:border-[var(--orange)]"
-              >
-                去登录
-              </Link>
+              <div className="flex items-center gap-2">
+                <span className="hidden text-[11px] text-[var(--muted)] sm:inline">
+                  未登录启航
+                </span>
+                <Link
+                  href="/"
+                  className="rounded-sm border border-[var(--orange)]/40 bg-[var(--orange-fog)] px-3 py-1.5 text-[11px] text-[var(--orange-deep)] transition hover:border-[var(--orange)]"
+                >
+                  去登录
+                </Link>
+              </div>
             )}
           </div>
         </div>

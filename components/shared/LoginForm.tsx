@@ -1,7 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { writeTabPortal } from "@/lib/auth/portalClient";
 import { cn } from "@/lib/utils";
 
@@ -33,13 +33,51 @@ const DEMO_ACCOUNTS = [
   },
 ];
 
+const SAFE_NEXT = [
+  "/companion",
+  "/workbench",
+  "/forum",
+  "/interactive",
+  "/tasks",
+  "/industry",
+  "/video-workshop",
+  "/works",
+  "/profile",
+  "/modules",
+  "/escalations",
+  "/interactive-control",
+  "/analytics",
+  "/weekly-report",
+  "/accounts",
+  "/highlights",
+];
+
+function safeNext(raw: string | null) {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+  if (SAFE_NEXT.some((p) => raw === p || raw.startsWith(`${p}/`))) return raw;
+  return null;
+}
+
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [portal, setPortal] = useState<Portal>("student");
   const [account, setAccount] = useState("S2026001");
   const [password, setPassword] = useState("123456");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const p = searchParams.get("portal");
+    if (p === "student" || p === "teacher" || p === "community") {
+      setPortal(p);
+      if (p === "teacher") {
+        setAccount("T001");
+      } else if (p === "student") {
+        setAccount("S2026001");
+      }
+    }
+  }, [searchParams]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,6 +90,7 @@ export function LoginForm() {
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           username: account.trim(),
@@ -62,7 +101,9 @@ export function LoginForm() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "登录失败");
       writeTabPortal(portal);
-      const dest = String(json.data.href || "/companion");
+      const dest =
+        safeNext(searchParams.get("next")) ||
+        String(json.data.href || "/companion");
       router.push(
         `/embark?to=${encodeURIComponent(dest)}&portal=${encodeURIComponent(portal)}`,
       );

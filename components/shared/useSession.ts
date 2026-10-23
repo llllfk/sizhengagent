@@ -60,12 +60,14 @@ export function useSession() {
       else if (portal && !stored) writeTabPortal(portal);
 
       const qs = portal ? `?portal=${encodeURIComponent(portal)}` : "";
-      let res = await fetch(`/api/auth/me${qs}`);
+      let res = await fetch(`/api/auth/me${qs}`, { credentials: "include" });
       let json = await res.json();
 
       // 路径端读不到时，再试一次无 portal / 另一端 cookie（双开残留）
       if (!res.ok && fromPath) {
-        const fallback = await fetch("/api/auth/me");
+        const fallback = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
         const fallbackJson = await fallback.json();
         if (
           fallback.ok &&
