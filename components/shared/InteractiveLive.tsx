@@ -284,7 +284,7 @@ export function InteractiveLive() {
           <p className="text-sm text-[var(--muted)]">
             每人贡献一句，AI 将按「人物—冲突—转折—结局」合成完整剧本。
           </p>
-          <ul className="max-h-40 space-y-2 overflow-y-auto rounded-sm border border-[var(--line)] bg-white p-3 text-sm">
+          <ul className="scroll-soft max-h-40 space-y-2 overflow-y-auto rounded-sm border border-[var(--line)] bg-white p-3 text-sm">
             {room.script_lines.length === 0 ? (
               <li className="text-[var(--muted)]">还没有接龙，抢沙发吧</li>
             ) : (
@@ -519,7 +519,7 @@ export function InteractiveLive() {
             提交发言
           </Button>
 
-          <ul className="max-h-48 space-y-2 overflow-y-auto rounded-sm border border-[var(--line)] bg-[var(--paper)] p-3 text-sm">
+          <ul className="scroll-soft max-h-48 space-y-2 overflow-y-auto rounded-sm border border-[var(--line)] bg-[var(--paper)] p-3 text-sm">
             {(room.debate_speeches ?? []).length === 0 ? (
               <li className="text-[var(--muted)]">暂无发言，来做第一个亮点</li>
             ) : (

@@ -211,7 +211,7 @@ export function IndustryDock() {
           ) : filtered.length === 0 ? (
             <p className="text-sm text-[var(--muted)]">该分类暂无条目。</p>
           ) : (
-            <ul className="max-h-[28rem] space-y-2 overflow-y-auto pr-1">
+            <ul className="scroll-soft max-h-[28rem] space-y-2 overflow-y-auto pr-1">
               {filtered.map((c, i) => {
                 const on = c.case_id === active?.case_id;
                 return (

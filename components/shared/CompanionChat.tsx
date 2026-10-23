@@ -204,7 +204,7 @@ export function CompanionChat() {
           </div>
         ) : null}
 
-        <div className="min-h-56 max-h-[52vh] space-y-3 overflow-y-auto rounded-sm border border-[var(--line)] bg-[var(--paper)] p-4">
+        <div className="scroll-soft min-h-56 max-h-[52vh] space-y-3 overflow-y-auto rounded-sm border border-[var(--line)] bg-[var(--paper)] p-4">
           {messages.length === 0 ? (
             <div className="space-y-4">
               <div className="flex flex-wrap gap-2">
