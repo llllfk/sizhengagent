@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { InteractiveKickoff } from "@/components/shared/InteractiveKickoff";
 import { cn } from "@/lib/utils";
 
 type Room = {
@@ -104,7 +105,6 @@ export function InteractiveLive() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           room_id: room.room_id,
-          student_id: "demo-student",
           sentence: sentence.trim(),
         }),
       });
@@ -148,7 +148,6 @@ export function InteractiveLive() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           room_id: room.room_id,
-          student_id: "demo-student",
           answers,
         }),
       });
@@ -173,7 +172,6 @@ export function InteractiveLive() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           room_id: room.room_id,
-          student_id: "demo-student",
           role: cabinRole,
           performance: cabinText.trim(),
         }),
@@ -201,7 +199,6 @@ export function InteractiveLive() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           room_id: room.room_id,
-          student_id: "demo-student",
           side: debateSide,
           content: debateText.trim(),
         }),
@@ -216,6 +213,9 @@ export function InteractiveLive() {
       setBusy(false);
     }
   }
+
+  const kickoffToken =
+    room && room.status === "live" ? room.room_id : null;
 
   if (!room || room.status !== "live") {
     const idleModes = [
@@ -263,6 +263,7 @@ export function InteractiveLive() {
 
   return (
     <div className="space-y-4">
+      <InteractiveKickoff room={room} playToken={kickoffToken} />
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-sm bg-[var(--orange)] px-2 py-0.5 text-[11px] text-white">
           LIVE

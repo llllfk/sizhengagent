@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { submitCabinPerf } from "@/lib/mock/interactive";
-import { findStudent } from "@/lib/mock/store";
+import { jsonError } from "@/lib/api/errors";
+import { requireStudent, requireStudentId } from "@/lib/auth/session";
+import { submitCabinPerf } from "@/lib/interactive/rooms";
+import { findStudent } from "@/lib/repo";
 
-/** POST /api/interactive/cabin — 提交扮演并返回 AI 点评 */
 export async function POST(request: NextRequest) {
   try {
+    const me = await requireStudent();
+    const studentId = await requireStudentId();
     const body = await request.json();
     const roomId = String(body.room_id ?? "");
-    const studentId = String(body.student_id ?? "demo-student");
-    const role = String(body.role ?? "乘务员").trim();
+    const role = String(body.role ?? "乘务员");
     const performance = String(body.performance ?? "").trim();
 
     if (!roomId || !performance) {
@@ -18,11 +20,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const student = findStudent(studentId);
+    const student = await findStudent(studentId);
     const result = submitCabinPerf({
       room_id: roomId,
       student_id: studentId,
-      name: student?.name ?? "演示学员",
+      name: student?.name ?? me.display_name,
       role,
       performance,
     });
@@ -36,14 +38,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       data: {
-        case_id: result.room.cabin_case?.case_id,
+        room: result.room,
         feedback: result.item.feedback,
         plan: result.item.plan,
-        room: result.room,
+        case_id: result.room.cabin_case?.case_id,
       },
-      mock: true,
     });
-  } catch {
-    return NextResponse.json({ error: "点评失败" }, { status: 500 });
+  } catch (e) {
+    return jsonError(e, "提交失败");
   }
 }

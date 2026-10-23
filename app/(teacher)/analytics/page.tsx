@@ -10,12 +10,10 @@ export default function AnalyticsPage() {
         </p>
         <h1 className="font-brand text-4xl text-[var(--ink)]">学情看板</h1>
         <p className="max-w-xl text-sm text-[var(--muted)]">
-          画像分布、任务完成、薄弱点与学员明细——答辩大屏可视化。
+          三型灯牌 + 班级雷达，一张图讲清因材施教。
         </p>
       </header>
-      <Panel title="班级全景">
-        <AnalyticsDashboard />
-      </Panel>
+      <AnalyticsDashboard />
     </div>
   );
 }

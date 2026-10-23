@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ProfileRadar,
+  TypeBeaconBoard,
+  buildClassRadarAxes,
+} from "@/components/shared/ProfileRadar";
 
 type StudentRow = {
   name: string;
@@ -46,9 +51,9 @@ function Bar({
         <span>{label}</span>
         <span>{value}</span>
       </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--orange-fog)]">
+      <div className="h-2.5 overflow-hidden rounded-sm bg-[var(--orange-fog)]">
         <div
-          className="h-full rounded-full transition-all duration-700"
+          className="h-full rounded-sm transition-all duration-700"
           style={{ width: `${pct}%`, background: color }}
         />
       </div>
@@ -65,16 +70,32 @@ export function AnalyticsDashboard() {
       .then((j) => setData(j.data));
   }, []);
 
+  const dominant = useMemo(() => {
+    if (!data) return "creation";
+    const d = data.type_dist;
+    const entries = [
+      ["expression", d.expression],
+      ["creation", d.creation],
+      ["experience", d.experience],
+    ] as const;
+    return entries.sort((a, b) => b[1] - a[1])[0]![0];
+  }, [data]);
+
+  const axes = useMemo(() => {
+    if (!data) return [];
+    return buildClassRadarAxes({
+      type_dist: data.type_dist,
+      task_completion_rate: data.task_completion_rate,
+      works_count: data.works_count,
+      student_count: data.student_count,
+      weak_top: data.weak_points[0]?.count,
+    });
+  }, [data]);
+
   if (!data) {
     return <p className="text-sm text-[var(--muted)]">加载学情…</p>;
   }
 
-  const typeMax = Math.max(
-    data.type_dist.expression,
-    data.type_dist.creation,
-    data.type_dist.experience,
-    1,
-  );
   const weakMax = Math.max(...data.weak_points.map((w) => w.count), 1);
   const taskMax = Math.max(
     data.task_status.todo,
@@ -85,90 +106,124 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          { k: "画像学员", v: data.student_count },
-          { k: "任务完成率", v: `${data.task_completion_rate}%` },
-          { k: "待转接", v: data.pending_escalations },
-          { k: "作品归档", v: data.works_count },
-        ].map((c) => (
-          <div
-            key={c.k}
-            className="rounded-sm border border-[var(--line)] bg-gradient-to-br from-[var(--orange-fog)] to-white p-4"
-          >
-            <div className="text-[11px] text-[var(--muted)]">{c.k}</div>
-            <div className="mt-1 font-display text-3xl text-[var(--orange)]">
-              {c.v}
+      {/* 答辩主视觉：灯牌 + 雷达 */}
+      <div className="profile-hero relative overflow-hidden rounded-sm border border-[var(--glass-border)] bg-white/85 p-5 md:p-6">
+        <div className="profile-hero-glow" aria-hidden />
+        <div className="relative z-10 space-y-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-[10px] tracking-[0.28em] text-[var(--orange)]">
+                大规模因材施教 · 班级画像
+              </p>
+              <h3 className="mt-1 font-display text-2xl text-[var(--ink)]">
+                三型灯牌 · 班级雷达
+              </h3>
+            </div>
+            <div className="flex flex-wrap gap-3 text-center">
+              {[
+                { k: "学员", v: data.student_count },
+                { k: "完成率", v: `${data.task_completion_rate}%` },
+                { k: "作品", v: data.works_count },
+              ].map((c) => (
+                <div
+                  key={c.k}
+                  className="min-w-[4.5rem] rounded-sm border border-[var(--line)] bg-white/90 px-3 py-2"
+                >
+                  <p className="text-[10px] text-[var(--muted)]">{c.k}</p>
+                  <p className="font-display text-xl text-[var(--orange)]">
+                    {c.v}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="space-y-3 rounded-sm border border-[var(--line)] bg-white p-4">
-          <p className="text-xs tracking-wider text-[var(--muted)]">思维类型分布</p>
-          <Bar label="表达型" value={data.type_dist.expression} max={typeMax} />
-          <Bar label="创作型" value={data.type_dist.creation} max={typeMax} />
-          <Bar label="体验型" value={data.type_dist.experience} max={typeMax} />
-        </div>
-        <div className="space-y-3 rounded-sm border border-[var(--line)] bg-white p-4">
-          <p className="text-xs tracking-wider text-[var(--muted)]">任务状态</p>
-          <Bar label="待开始" value={data.task_status.todo} max={taskMax} />
-          <Bar
-            label="进行中"
-            value={data.task_status.doing}
-            max={taskMax}
-            color="#f08a3a"
+          <TypeBeaconBoard
+            active={dominant}
+            counts={data.type_dist}
+            mode="class"
           />
-          <Bar
-            label="已完成"
-            value={data.task_status.done}
-            max={taskMax}
-            color="#2f9e6b"
-          />
+
+          <div className="grid items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+            <ProfileRadar
+              axes={axes}
+              size={300}
+              accentLabel="班级能力雷达"
+              className="justify-self-center"
+            />
+            <div className="space-y-4">
+              <div className="rounded-sm border border-[var(--line)] bg-white/90 p-4">
+                <p className="text-[10px] tracking-[0.2em] text-[var(--muted)]">
+                  任务节奏
+                </p>
+                <div className="mt-3 space-y-2.5">
+                  <Bar label="待开始" value={data.task_status.todo} max={taskMax} />
+                  <Bar
+                    label="进行中"
+                    value={data.task_status.doing}
+                    max={taskMax}
+                    color="#f08a3a"
+                  />
+                  <Bar
+                    label="已完成"
+                    value={data.task_status.done}
+                    max={taskMax}
+                    color="#2f9e6b"
+                  />
+                </div>
+              </div>
+              <div className="rounded-sm border border-[var(--line)] bg-white/90 p-4">
+                <p className="text-[10px] tracking-[0.2em] text-[var(--muted)]">
+                  高频薄弱点
+                </p>
+                <div className="mt-3 space-y-2.5">
+                  {data.weak_points.length === 0 ? (
+                    <p className="text-sm text-[var(--muted)]">暂无</p>
+                  ) : (
+                    data.weak_points.slice(0, 4).map((w) => (
+                      <Bar
+                        key={w.name}
+                        label={w.name}
+                        value={w.count}
+                        max={weakMax}
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="space-y-3 rounded-sm border border-[var(--line)] bg-white p-4">
-        <p className="text-xs tracking-wider text-[var(--muted)]">高频薄弱点</p>
-        {data.weak_points.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">暂无</p>
-        ) : (
-          data.weak_points.map((w) => (
-            <Bar key={w.name} label={w.name} value={w.count} max={weakMax} />
-          ))
-        )}
-      </div>
-
-      <div className="overflow-x-auto rounded-sm border border-[var(--line)] bg-white">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-[var(--orange-fog)] text-xs text-[var(--muted)]">
-            <tr>
-              <th className="px-4 py-2 font-medium">学员</th>
-              <th className="px-4 py-2 font-medium">类型</th>
-              <th className="px-4 py-2 font-medium">认知</th>
-              <th className="px-4 py-2 font-medium">已完成任务</th>
-              <th className="px-4 py-2 font-medium">薄弱点</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.student_rows.map((s) => (
-              <tr key={s.name} className="border-t border-[var(--line)]">
-                <td className="px-4 py-2.5 font-medium text-[var(--ink)]">
+      {/* 明细弱化：折叠感卡片列表，替代大表抢戏 */}
+      <div className="space-y-3">
+        <p className="text-[10px] tracking-[0.22em] text-[var(--orange)]">
+          学员速览 · {data.student_rows.length} 人
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {data.student_rows.map((s) => (
+            <div
+              key={s.name}
+              className="rounded-sm border border-[var(--line)] bg-white/90 px-3 py-3 transition hover:border-[var(--orange)]/40"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <p className="font-display text-base text-[var(--ink)]">
                   {s.name}
-                </td>
-                <td className="px-4 py-2.5 text-[var(--orange-deep)]">
+                </p>
+                <span className="text-[10px] tracking-wider text-[var(--orange)]">
                   {typeLabel[s.type_tag] ?? s.type_tag}
-                </td>
-                <td className="px-4 py-2.5">L{s.cognition_level}</td>
-                <td className="px-4 py-2.5">{s.task_done}</td>
-                <td className="px-4 py-2.5 text-[var(--muted)]">
-                  {s.weak_points.join("、") || "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+              </div>
+              <p className="mt-1 text-[11px] text-[var(--muted)]">
+                L{s.cognition_level} · 完成 {s.task_done} 项
+              </p>
+              <p className="mt-1 line-clamp-1 text-[11px] text-[var(--muted)]">
+                {s.weak_points.join("、") || "薄弱点未标注"}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

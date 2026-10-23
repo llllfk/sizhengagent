@@ -1,3 +1,9 @@
+import {
+  pickQuizPaper,
+  pickWordcard,
+  WORDCARD_BANK_SEED,
+} from "@/lib/content/interactiveBank";
+
 export type InteractiveMode =
   | "cabin"
   | "script"
@@ -83,23 +89,24 @@ const MODE_TITLE: Record<InteractiveMode, string> = {
   debate: "课堂辩论",
 };
 
-const QUIZ_BANK: QuizQuestion[] = [
+/** 客舱思政底仓题（与教材题库混抽） */
+const CABIN_QUIZ_EXTRA: QuizQuestion[] = [
   {
-    id: "q1",
+    id: "q_cabin_1",
     stem: "客舱服务中，「人民至上」在现场决策里的第一含义是？",
     options: ["效率优先", "安全与生命优先", "满意度优先", "流程优先"],
     answer: 1,
     difficulty: 1,
   },
   {
-    id: "q2",
+    id: "q_cabin_2",
     stem: "旅客坚持超规行李登机，乘务员首先应守住的是？",
     options: ["人情面子", "飞行安全与规章", "个人偏好", "省事息事"],
     answer: 1,
     difficulty: 2,
   },
   {
-    id: "q3",
+    id: "q_cabin_3",
     stem: "颠簸中旅客拒绝回座，沟通话术较合适的是？",
     options: [
       "直接指责不配合",
@@ -116,7 +123,28 @@ const WORD_CARDS = [
   { id: "w1", term: "人民至上", hint: "客舱抉择的价值锚点" },
   { id: "w2", term: "服务边界", hint: "规则与人情的张力" },
   { id: "w3", term: "职业伦理", hint: "空乘现场的责任结构" },
+  { id: "w4", term: "安全红线", hint: "隐患零容忍 · 生命线" },
+  { id: "w5", term: "三个敬畏", hint: "敬畏生命 · 规章 · 职责" },
+  { id: "w6", term: "工匠精神", hint: "每一次巡视都当第一次" },
+  ...WORDCARD_BANK_SEED.map((w) => ({
+    id: w.id,
+    term: w.term,
+    hint: w.hint,
+  })),
 ];
+
+function buildQuizPaper(): QuizQuestion[] {
+  const fromBank = pickQuizPaper(4).map((q) => ({
+    id: q.id,
+    stem: q.stem,
+    options: q.options,
+    answer: q.answer,
+    difficulty: q.difficulty,
+  }));
+  const cabin =
+    CABIN_QUIZ_EXTRA[Math.floor(Math.random() * CABIN_QUIZ_EXTRA.length)];
+  return [...fromBank, cabin];
+}
 
 const CABIN_CASES: CabinCase[] = [
   {
@@ -182,7 +210,11 @@ export function getRoom(roomId: string) {
   return getStore().rooms.find((r) => r.room_id === roomId) ?? null;
 }
 
-export function startRoom(mode: InteractiveMode, theme?: string): InteractiveRoom {
+export function startRoom(
+  mode: InteractiveMode,
+  theme?: string,
+  cabinCase?: CabinCase,
+): InteractiveRoom {
   const store = getStore();
   store.rooms.forEach((r) => {
     if (r.status === "live") r.status = "ended";
@@ -190,7 +222,8 @@ export function startRoom(mode: InteractiveMode, theme?: string): InteractiveRoo
 
   const cabin =
     mode === "cabin"
-      ? CABIN_CASES[Math.floor(Math.random() * CABIN_CASES.length)]
+      ? cabinCase ||
+        CABIN_CASES[Math.floor(Math.random() * CABIN_CASES.length)]
       : undefined;
 
   const debateTopic =
@@ -221,10 +254,13 @@ export function startRoom(mode: InteractiveMode, theme?: string): InteractiveRoo
   };
 
   if (mode === "quiz") {
-    room.quiz_paper = QUIZ_BANK.map((q) => ({ ...q }));
+    room.quiz_paper = buildQuizPaper();
   }
   if (mode === "wordcard") {
-    room.wordcard = WORD_CARDS[Math.floor(Math.random() * WORD_CARDS.length)];
+    const fromSeed = Math.random() < 0.7 ? pickWordcard() : null;
+    room.wordcard = fromSeed
+      ? { id: fromSeed.id, term: fromSeed.term, hint: fromSeed.hint }
+      : WORD_CARDS[Math.floor(Math.random() * WORD_CARDS.length)];
   }
   if (mode === "debate") {
     room.debate_background = [

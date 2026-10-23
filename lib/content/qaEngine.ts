@@ -5,42 +5,60 @@ import {
   withAiDisclaimer,
   type QuestionType,
 } from "@/lib/ai";
+import {
+  retrieveForQuestion,
+  type RetrievalHit,
+} from "@/lib/content/retrieval";
 
-/** 比赛演示用：无大模型时的「像样」追问与点评文案 */
+/** 无大模型时的苏格拉底追问文案；检索命中单独返回供侧栏展示 */
 export function buildFirstPrompt(question: string): {
   q_type: QuestionType;
   prompt: string;
+  retrieval: RetrievalHit[];
 } {
   const q_type = classifyQuestionStub(question);
+  const retrieval = retrieveForQuestion(question, 4);
+  const ragLine =
+    retrieval.length > 0
+      ? "【检索】已命中答疑知识库 / 客舱案例库（见右侧引用），请结合片段思考，勿照搬结论。\n"
+      : "";
 
   let body: string;
   if (q_type === "scenario") {
     body = [
       "【情境识别】这更像客舱现场的决策题，而不是背标准答案。",
+      ragLine,
       "先把画面还原清楚：你站在哪个岗位？冲突的双方分别要什么？",
       "安全底线有没有被触碰？如果有，哪一条不可让步？",
       "",
       "请用两三句话描述：当时你看到了什么、最先担心的是什么。",
-    ].join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
   } else if (q_type === "value") {
     body = [
       "【价值类】我不会直接给结论，我们用苏格拉底三连一起想。",
-      "",
+      ragLine,
       `第一问：${nextSocraticPrompt(0)}`,
       "（可以结合空乘岗位：对旅客、对机组、对规则，你分别站在哪一侧？）",
-    ].join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
   } else {
     body = [
       "【知识类】先对齐关键概念，再谈落地。",
+      ragLine,
       "在你的问题里，你最想弄清的关键词是哪一个？",
-      "例如：人民至上 / 服务边界 / 职业伦理 / 应急指令优先级。",
+      "例如：人民至上 / 服务边界 / 职业伦理 / 安全红线 / 三个敬畏。",
       "",
       "请选出一个词，并用自己的话解释它在客舱里意味着什么。",
-    ].join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 
   const gated = contentSafetyGate(withAiDisclaimer(body));
-  return { q_type, prompt: gated.text };
+  return { q_type, prompt: gated.text, retrieval };
 }
 
 export function buildFollowupPrompt(input: {
@@ -48,7 +66,7 @@ export function buildFollowupPrompt(input: {
   round: number;
   answer: string;
 }): { prompt: string; shouldEscalate: boolean } {
-  const nextRound = input.round; // 已完成的轮次，0 起
+  const nextRound = input.round;
   const step = nextSocraticPrompt(Math.min(nextRound, 2));
 
   if (nextRound >= 2 || !step) {
@@ -100,6 +118,11 @@ export const DEMO_PROMPTS = [
   "客舱突发旅客纠纷时，乘务员该如何平衡规则与人情？",
   "颠簸中旅客拒绝回座，我该先讲安全还是先安抚情绪？",
   "什么是客舱服务里的「人民至上」？",
+  "民航安全红线意识在客舱岗位上具体意味着什么？",
+  "如何理解「安全是民航业的生命线」与准点效益的关系？",
+  "三个敬畏如何落到一次平凡航班的客舱巡视？",
+  "周恩来「保证安全第一，改善服务工作，争取飞行正常」对空乘意味着什么？",
+  "中国梦是人民的梦，在客舱服务里怎么落地？",
 ];
 
 export { SAFETY_DEMO_SAMPLES } from "@/lib/ai";

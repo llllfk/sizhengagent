@@ -35,9 +35,10 @@ export function VideoWorkshop() {
   } | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/video/storyboard?student_id=demo-student");
+    const res = await fetch("/api/video/storyboard");
     const json = await res.json();
     const p = json.data as Project;
+    if (!p) return;
     setProject(p);
     setTheme(p.theme || "");
     setValuePoint(p.value_point || "");
@@ -57,7 +58,6 @@ export function VideoWorkshop() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          student_id: "demo-student",
           action,
           theme,
           value_point: valuePoint,
@@ -90,7 +90,6 @@ export function VideoWorkshop() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          student_id: "demo-student",
           type: "short_video",
           title: theme || "客舱思政短视频",
           file_uri: fileUri,

@@ -45,7 +45,7 @@ export function WorkbenchStats() {
     {
       label: "画像学员",
       value: stats.students,
-      hint: "Mock 班级",
+      hint: "学情库",
       pulse: false,
     },
   ];

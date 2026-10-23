@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  findStudent,
-  getStore,
-  updateEscalationStatus,
-} from "@/lib/mock/store";
+import { jsonError } from "@/lib/api/errors";
+import { requireTeacher } from "@/lib/auth/session";
+import { listEscalations, updateEscalationStatus } from "@/lib/repo";
 
-/** GET /api/teacher/escalations — 教师端拉取疑难转接队列 */
 export async function GET() {
-  const list = getStore().escalations.map((e) => ({
-    ...e,
-    student_name: findStudent(e.student_id)?.name ?? e.student_id,
-  }));
-  return NextResponse.json({ data: list, mock: true });
+  try {
+    await requireTeacher();
+    return NextResponse.json({ data: await listEscalations() });
+  } catch (e) {
+    return jsonError(e, "读取转接队列失败");
+  }
 }
 
-/** PATCH /api/teacher/escalations — 更新处理状态 */
 export async function PATCH(request: NextRequest) {
   try {
+    await requireTeacher();
     const body = await request.json();
     const id = String(body.escalation_id ?? "");
     const status = String(body.teacher_status ?? "") as
@@ -32,12 +30,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const updated = updateEscalationStatus(id, status);
+    const updated = await updateEscalationStatus(id, status);
     if (!updated) {
       return NextResponse.json({ error: "未找到该转接" }, { status: 404 });
     }
-    return NextResponse.json({ data: updated, mock: true });
-  } catch {
-    return NextResponse.json({ error: "更新失败" }, { status: 500 });
+    return NextResponse.json({ data: updated });
+  } catch (e) {
+    return jsonError(e, "更新失败");
   }
 }

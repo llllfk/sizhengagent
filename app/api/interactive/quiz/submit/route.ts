@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { submitQuiz } from "@/lib/mock/interactive";
 import { withAiDisclaimer } from "@/lib/ai";
+import { jsonError } from "@/lib/api/errors";
+import { requireStudentId } from "@/lib/auth/session";
+import { submitQuiz } from "@/lib/interactive/rooms";
 
-/** POST /api/interactive/quiz/submit */
 export async function POST(request: NextRequest) {
   try {
+    const studentId = await requireStudentId();
     const body = await request.json();
     const roomId = String(body.room_id ?? "");
-    const studentId = String(body.student_id ?? "demo-student");
     const answers = (body.answers ?? {}) as Record<string, number>;
 
     if (!roomId) {
@@ -31,9 +32,8 @@ export async function POST(request: NextRequest) {
         wrong: result.wrong,
         followup_prompt: withAiDisclaimer(result.followup),
       },
-      mock: true,
     });
-  } catch {
-    return NextResponse.json({ error: "提交失败" }, { status: 500 });
+  } catch (e) {
+    return jsonError(e, "提交失败");
   }
 }

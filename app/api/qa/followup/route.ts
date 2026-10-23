@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { contentSafetyGate } from "@/lib/ai";
-import { buildFollowupPrompt } from "@/lib/mock/qaEngine";
+import { jsonError } from "@/lib/api/errors";
+import { requireStudent } from "@/lib/auth/session";
+import { buildFollowupPrompt } from "@/lib/content/qaEngine";
+import { retrieveForQuestion } from "@/lib/content/retrieval";
 import {
   appendFollowup,
   createEscalation,
   getSession,
-} from "@/lib/mock/store";
+} from "@/lib/repo";
 
-/** POST /api/qa/followup — 提交学生答复，AI 生成下一轮追问 */
 export async function POST(request: NextRequest) {
   try {
+    const me = await requireStudent();
     const body = await request.json();
     const sessionId = String(body.session_id ?? "");
     const answer = String(body.answer ?? "").trim();
@@ -29,9 +32,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = getSession(sessionId);
+    const session = await getSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: "会话不存在" }, { status: 404 });
+    }
+    const myId = me.student_id || me.username;
+    if (session.student_id !== myId) {
+      return NextResponse.json({ error: "无权操作此会话" }, { status: 403 });
     }
 
     const { prompt, shouldEscalate } = buildFollowupPrompt({
@@ -40,16 +47,26 @@ export async function POST(request: NextRequest) {
       answer,
     });
 
-    appendFollowup(sessionId, answer, prompt, shouldEscalate);
+    const updated = await appendFollowup(
+      sessionId,
+      answer,
+      prompt,
+      shouldEscalate,
+    );
 
     let escalation = null;
     if (shouldEscalate) {
-      escalation = createEscalation({
+      escalation = await createEscalation({
         session_id: sessionId,
         student_id: session.student_id,
         summary: `学员就「${session.question.slice(0, 36)}」追问多轮后仍难形成可执行预案，已转入教师队列。`,
       });
     }
+
+    const retrieval = retrieveForQuestion(
+      `${session.question} ${answer}`,
+      4,
+    );
 
     return NextResponse.json({
       data: {
@@ -57,12 +74,12 @@ export async function POST(request: NextRequest) {
         prompt,
         escalate_hint: shouldEscalate,
         escalation,
-        round: session.round,
-        status: session.status,
-        mock: true,
+        retrieval,
+        round: updated?.round ?? session.round,
+        status: updated?.status ?? session.status,
       },
     });
-  } catch {
-    return NextResponse.json({ error: "追问失败" }, { status: 500 });
+  } catch (e) {
+    return jsonError(e, "追问失败");
   }
 }

@@ -15,7 +15,7 @@ export default function VideoWorkshopPage() {
           脚本 → 分镜 → 字幕 → 成片归档，四步完成可展示作品。
         </p>
       </header>
-      <Panel title="创作脚手架" hint="Mock 生成，答辩可逐步点亮">
+      <Panel title="创作脚手架" hint="脚本 → 分镜 → 字幕 → 成片归档">
         <VideoWorkshop />
       </Panel>
     </div>

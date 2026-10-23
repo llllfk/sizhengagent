@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { contentSafetyGate } from "@/lib/ai";
-import { buildFirstPrompt } from "@/lib/mock/qaEngine";
-import { createSession, findStudent } from "@/lib/mock/store";
+import { jsonError } from "@/lib/api/errors";
+import { requireStudentId } from "@/lib/auth/session";
+import { buildFirstPrompt } from "@/lib/content/qaEngine";
+import { createSession, findStudent } from "@/lib/repo";
 
-/** POST /api/qa/sessions — 发起答疑会话，返回首轮追问 */
 export async function POST(request: NextRequest) {
   try {
+    const studentId = await requireStudentId();
     const body = await request.json();
-    const studentId = String(body.student_id ?? "demo-student");
     const question = String(body.question ?? "").trim();
 
     if (!question) {
@@ -22,14 +23,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { q_type, prompt } = buildFirstPrompt(question);
-    const session = createSession({
+    const { q_type, prompt, retrieval } = buildFirstPrompt(question);
+    const session = await createSession({
       student_id: studentId,
       question,
       q_type,
       firstPrompt: prompt,
     });
-    const student = findStudent(studentId);
+    const student = await findStudent(studentId);
 
     return NextResponse.json(
       {
@@ -39,14 +40,13 @@ export async function POST(request: NextRequest) {
           student_name: student?.name ?? studentId,
           q_type,
           prompt,
+          retrieval,
           status: session.status,
-          created_at: session.messages[0]?.at,
-          mock: true,
         },
       },
       { status: 201 },
     );
-  } catch {
-    return NextResponse.json({ error: "发起答疑失败" }, { status: 500 });
+  } catch (e) {
+    return jsonError(e, "发起答疑失败");
   }
 }

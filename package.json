@@ -7,10 +7,16 @@
     "dev:turbo": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:schema": "node scripts/apply-schema.mjs",
+    "pack:works": "node scripts/pack-works-videos.mjs",
+    "preview:works": "node scripts/make-works-previews.mjs",
+    "anim:works": "node scripts/make-works-webps.mjs",
+    "upload:works": "node scripts/upload-works-to-s3.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.758.0",
+    "@aws-sdk/s3-request-presigner": "^3.1155.0",
     "next": "^15.0.0",
     "pg": "^8.13.0",
     "react": "^19.0.0",
