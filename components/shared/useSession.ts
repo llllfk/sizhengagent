@@ -53,11 +53,33 @@ export function useSession() {
     setLoading(true);
     try {
       const fromPath = portalFromPath(pathname || "");
-      const portal = readTabPortal() ?? fromPath;
-      if (portal && !readTabPortal()) writeTabPortal(portal);
+      const stored = readTabPortal();
+      // 路径能判定端时以路径为准，避免同标签残留 teacher 导致学生页读错会话
+      const portal = fromPath ?? stored;
+      if (fromPath && stored !== fromPath) writeTabPortal(fromPath);
+      else if (portal && !stored) writeTabPortal(portal);
+
       const qs = portal ? `?portal=${encodeURIComponent(portal)}` : "";
-      const res = await fetch(`/api/auth/me${qs}`);
-      const json = await res.json();
+      let res = await fetch(`/api/auth/me${qs}`);
+      let json = await res.json();
+
+      // 路径端读不到时，再试一次无 portal / 另一端 cookie（双开残留）
+      if (!res.ok && fromPath) {
+        const fallback = await fetch("/api/auth/me");
+        const fallbackJson = await fallback.json();
+        if (
+          fallback.ok &&
+          fallbackJson.data &&
+          ((fromPath === "student" && fallbackJson.data.role === "student") ||
+            (fromPath === "teacher" && fallbackJson.data.role === "teacher") ||
+            fromPath === "community")
+        ) {
+          res = fallback;
+          json = fallbackJson;
+          writeTabPortal(fromPath);
+        }
+      }
+
       if (!res.ok) {
         setUser(null);
         setError(json.error || "未登录");
