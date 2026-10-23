@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useSession } from "@/components/shared/useSession";
+import { writeTabPortal } from "@/lib/auth/portalClient";
 import { cn } from "@/lib/utils";
 import { SAFETY_DEMO_SAMPLES } from "@/lib/ai";
 import { DEMO_PROMPTS } from "@/lib/content/qaEngine";
@@ -28,7 +31,14 @@ type RetrievalHit = {
 
 const SOCRATIC = ["你怎么看？", "依据是什么？", "换个情境还成立吗？"];
 
+const DEMO_STUDENT = {
+  username: "S2026001",
+  password: "123456",
+  name: "林晓航",
+};
+
 export function CompanionChat() {
+  const { user, loading: sessionLoading, isStudent, refresh } = useSession();
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [qType, setQType] = useState<string | null>(null);
@@ -39,6 +49,11 @@ export function CompanionChat() {
   const [hits, setHits] = useState<RetrievalHit[]>([]);
   const [scanning, setScanning] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
+  const [authHint, setAuthHint] = useState(false);
+  const [demoLoginBusy, setDemoLoginBusy] = useState(false);
+  const [demoLoginError, setDemoLoginError] = useState("");
+
+  const needStudent = !sessionLoading && !isStudent;
 
   useEffect(() => {
     if (!scanning) return;
@@ -52,11 +67,43 @@ export function CompanionChat() {
     setFlashKey((k) => k + 1);
   }
 
+  async function loginAsDemoStudent() {
+    setDemoLoginBusy(true);
+    setDemoLoginError("");
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: DEMO_STUDENT.username,
+          password: DEMO_STUDENT.password,
+          portal: "student",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "登录失败");
+      writeTabPortal("student");
+      setAuthHint(false);
+      await refresh();
+    } catch (e) {
+      setDemoLoginError(e instanceof Error ? e.message : "登录失败");
+    } finally {
+      setDemoLoginBusy(false);
+    }
+  }
+
   async function send(textOverride?: string) {
     const text = (textOverride ?? input).trim();
     if (!text || loading || escalated) return;
+
+    if (!isStudent) {
+      setAuthHint(true);
+      return;
+    }
+
     setLoading(true);
     setSafety(null);
+    setAuthHint(false);
     setScanning(true);
     setMessages((m) => [...m, { role: "user", content: text }]);
     setInput("");
@@ -69,6 +116,13 @@ export function CompanionChat() {
           body: JSON.stringify({ question: text }),
         });
         const json = await res.json();
+        if (res.status === 401 || json.code === "UNAUTHORIZED") {
+          setMessages((m) => m.slice(0, -1));
+          setInput(text);
+          setAuthHint(true);
+          setScanning(false);
+          return;
+        }
         if (res.status === 422 && json.safety) {
           setSafety({
             gate: json.safety.gate,
@@ -95,6 +149,13 @@ export function CompanionChat() {
           body: JSON.stringify({ session_id: sessionId, answer: text }),
         });
         const json = await res.json();
+        if (res.status === 401 || json.code === "UNAUTHORIZED") {
+          setMessages((m) => m.slice(0, -1));
+          setInput(text);
+          setAuthHint(true);
+          setScanning(false);
+          return;
+        }
         if (res.status === 422 && json.safety) {
           setSafety({
             gate: json.safety.gate,
@@ -147,6 +208,7 @@ export function CompanionChat() {
     setSafety(null);
     setHits([]);
     setScanning(false);
+    setAuthHint(false);
   }
 
   return (
@@ -166,6 +228,13 @@ export function CompanionChat() {
               等待首问 · 内容安全双闸门
             </span>
           )}
+          {isStudent && user ? (
+            <span className="rounded-sm border border-[var(--line)] bg-white px-2 py-0.5 text-[var(--muted)]">
+              {user.display_name}
+              <span className="mx-1 text-[var(--line)]">·</span>
+              {user.student_id || user.username}
+            </span>
+          ) : null}
           {escalated ? (
             <span className="rounded-sm bg-[var(--vermilion)]/10 px-2 py-0.5 text-[var(--vermilion)]">
               已转教师
@@ -181,6 +250,44 @@ export function CompanionChat() {
             </button>
           ) : null}
         </div>
+
+        {needStudent || authHint ? (
+          <div className="animate-rise rounded-sm border border-[var(--orange)]/40 bg-gradient-to-br from-[var(--orange-fog)] to-white px-4 py-4 shadow-[0_12px_36px_rgba(232,120,47,0.12)]">
+            <p className="text-[10px] tracking-[0.22em] text-[var(--orange)]">
+              学生学伴 · 会话门禁
+            </p>
+            <p className="mt-1.5 font-display text-lg text-[var(--ink)]">
+              请先以学生身份登录
+            </p>
+            <p className="mt-1 text-sm leading-6 text-[var(--muted)]">
+              {user?.role === "teacher"
+                ? "当前是教师会话。学伴答疑需学生端登录；同浏览器可另开学生窗，互不覆盖。"
+                : "点选示例或发送提问前，先进入学生学伴身份。演示可一键登录林晓航。"}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                onClick={() => void loginAsDemoStudent()}
+                disabled={demoLoginBusy}
+              >
+                {demoLoginBusy
+                  ? "登录中…"
+                  : `一键演示 · ${DEMO_STUDENT.name}`}
+              </Button>
+              <Link
+                href="/"
+                className="rounded-sm border border-[var(--line)] bg-white px-3 py-2 text-xs text-[var(--muted)] transition hover:border-[var(--orange)] hover:text-[var(--orange)]"
+              >
+                返回登录页
+              </Link>
+            </div>
+            {demoLoginError ? (
+              <p className="mt-2 text-xs text-[var(--vermilion)]">
+                {demoLoginError}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {safety ? (
           <div
@@ -227,7 +334,8 @@ export function CompanionChat() {
                     key={p}
                     type="button"
                     onClick={() => void send(p)}
-                    className="border border-[var(--line)] bg-white px-3 py-2.5 text-left text-xs text-[var(--ink)] transition hover:border-[var(--orange)] hover:bg-[var(--orange-fog)]"
+                    disabled={needStudent || loading}
+                    className="border border-[var(--line)] bg-white px-3 py-2.5 text-left text-xs text-[var(--ink)] transition hover:border-[var(--orange)] hover:bg-[var(--orange-fog)] disabled:cursor-not-allowed disabled:opacity-55"
                   >
                     {p}
                   </button>
@@ -243,7 +351,8 @@ export function CompanionChat() {
                       key={s.label}
                       type="button"
                       onClick={() => void send(s.text)}
-                      className="rounded-sm border border-dashed border-[var(--orange)]/40 bg-white px-2.5 py-1.5 text-[11px] text-[var(--orange-deep)] transition hover:bg-[var(--orange-fog)]"
+                      disabled={needStudent || loading}
+                      className="rounded-sm border border-dashed border-[var(--orange)]/40 bg-white px-2.5 py-1.5 text-[11px] text-[var(--orange-deep)] transition hover:bg-[var(--orange-fog)] disabled:cursor-not-allowed disabled:opacity-55"
                     >
                       {s.label}
                     </button>
@@ -280,21 +389,25 @@ export function CompanionChat() {
 
         <div className="flex gap-2">
           <input
-            className="flex-1 rounded-sm border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)]/50 focus:border-[var(--orange)] focus:shadow-[0_0_0_3px_rgba(232,120,47,0.12)]"
+            className="flex-1 rounded-sm border border-[var(--line)] bg-white px-3 py-2.5 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)]/50 focus:border-[var(--orange)] focus:shadow-[0_0_0_3px_rgba(232,120,47,0.12)] disabled:bg-[var(--paper)] disabled:opacity-70"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") void send();
             }}
             placeholder={
-              escalated ? "本轮已转教师，可新开一轮" : "输入你的问题或答复…"
+              needStudent
+                ? "请先学生登录后再提问…"
+                : escalated
+                  ? "本轮已转教师，可新开一轮"
+                  : "输入你的问题或答复…"
             }
-            disabled={loading || escalated}
+            disabled={needStudent || loading || escalated}
           />
           <Button
             type="button"
             onClick={() => void send()}
-            disabled={loading || escalated}
+            disabled={needStudent || loading || escalated}
           >
             {loading ? "检索中" : "发送"}
           </Button>
@@ -361,7 +474,7 @@ export function CompanionChat() {
                 <p className="mt-1.5 font-display text-sm text-[var(--ink)]">
                   {h.title}
                 </p>
-                <p className="mt-1 line-clamp-3 text-[11px] leading-5 text-[var(--muted)]">
+                <p className="mt-1.5 line-clamp-3 text-[11px] leading-5 text-[var(--muted)]">
                   「{h.quote}」
                 </p>
                 <p className="mt-1.5 text-[10px] text-[var(--muted)]">
