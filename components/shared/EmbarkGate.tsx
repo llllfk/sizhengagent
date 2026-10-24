@@ -5,7 +5,7 @@ import { writeTabPortal, type TabPortal } from "@/lib/auth/portalClient";
 import { cn } from "@/lib/utils";
 
 const PORTAL_LINE: Record<string, string> = {
-  student: "智能学伴 · 每一位都被听见",
+  student: "让每一位的声音被听见",
   teacher: "教师工作台 · 人机协同调度",
   community: "研讨社区 · 观点碰撞回灌",
 };
@@ -69,9 +69,10 @@ export function EmbarkGate({
       return;
     }
 
-    const tHold = window.setTimeout(() => setPhase("hold"), 480);
-    const tOut = window.setTimeout(() => setPhase("out"), 1680);
-    const tGo = window.setTimeout(go, 2100);
+    // 登录后启航门：入场 → 静置 → 淡出，整段约 2s
+    const tHold = window.setTimeout(() => setPhase("hold"), 800);
+    const tOut = window.setTimeout(() => setPhase("out"), 1580);
+    const tGo = window.setTimeout(go, 2000);
 
     return () => {
       window.clearTimeout(tHold);
@@ -116,7 +117,7 @@ export function EmbarkGate({
         </h1>
         <div className="embark-rule mx-auto mt-6 h-px w-0 bg-gradient-to-r from-transparent via-[var(--orange)] to-transparent" />
         <p className="embark-tagline mt-5 font-display text-base tracking-[0.28em] text-[var(--ink)] md:text-xl">
-          人机同飞
+          智能学伴
         </p>
         <p className="embark-sub mt-2 text-xs text-[var(--muted)] md:text-sm">
           {line}

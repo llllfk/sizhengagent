@@ -8,14 +8,14 @@ import {
   SESSION_COOKIE,
   type PortalKind,
 } from "@/lib/auth/session";
-import { ensurePg } from "@/lib/repo/ensure";
+import { hasDb } from "@/lib/db";
 import { authenticate } from "@/lib/repo/users";
 import { DbUnavailableError } from "@/lib/repo";
 
+/** 登录只验账号密码，不灌库、不跑种子 */
 export async function POST(request: NextRequest) {
   try {
-    const ok = await ensurePg();
-    if (!ok) throw new DbUnavailableError();
+    if (!hasDb()) throw new DbUnavailableError();
 
     const body = await request.json();
     const username = String(body.username ?? body.account ?? "").trim();

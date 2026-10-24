@@ -1,69 +1,78 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
+import { flushSync } from "react-dom";
 import {
   WORKS_GALLERY,
   type WorkClip,
 } from "@/lib/content/worksGallery";
 
-const floatClass = [
-  "works-float-a",
-  "works-float-b",
-  "works-float-c",
-  "works-float-d",
-] as const;
-
 /**
- * 环绕槽位：以舞台中心为锚点（left/top = 卡片中心），左右严格对称。
- * tier1 近主视觉大奖位 · tier2 腰线 · tier3 外圈小品
+ * 三层同心：中心最大 · 中圈稍小 · 外圈剩余小品包围
+ * cx/cy 为卡片中心百分比（相对舞台）
  */
 type SatSlot = {
   cx: number;
   cy: number;
-  /** 1 大奖近位 · 2 中位 · 3 外圈小品 */
-  tier: 1 | 2 | 3;
+  /** 1 中圈 · 2 外圈 */
+  tier: 1 | 2;
 };
 
-const SAT_SLOTS: SatSlot[] = [
-  /* 更靠外缘，避开中心四强错落区 */
-  { cx: 11, cy: 9, tier: 1 },
-  { cx: 89, cy: 9, tier: 1 },
-  { cx: 26, cy: 5, tier: 2 },
-  { cx: 74, cy: 5, tier: 2 },
-  { cx: 6, cy: 36, tier: 1 },
-  { cx: 94, cy: 36, tier: 1 },
-  { cx: 5, cy: 58, tier: 2 },
-  { cx: 95, cy: 58, tier: 2 },
-  { cx: 14, cy: 86, tier: 2 },
-  { cx: 86, cy: 86, tier: 2 },
-  { cx: 36, cy: 93, tier: 3 },
-  { cx: 64, cy: 93, tier: 3 },
-  { cx: 18, cy: 22, tier: 3 },
-  { cx: 82, cy: 22, tier: 3 },
-  { cx: 18, cy: 74, tier: 3 },
-  { cx: 82, cy: 74, tier: 3 },
-];
+/** 从正上方起均分；保证左右镜像对称（奇/偶数圈均可） */
+function ringSlots(
+  count: number,
+  radiusX: number,
+  radiusY: number,
+  tier: 1 | 2,
+  startDeg = -90,
+): SatSlot[] {
+  return Array.from({ length: count }, (_, i) => {
+    const deg = startDeg + (360 / count) * i;
+    const rad = (deg * Math.PI) / 180;
+    return {
+      cx: +(50 + radiusX * Math.cos(rad)).toFixed(2),
+      cy: +(50 + radiusY * Math.sin(rad)).toFixed(2),
+      tier,
+    };
+  });
+}
 
-const TIER_WIDTH: Record<1 | 2 | 3, string> = {
-  1: "17.5%",
-  2: "15%",
-  3: "13%",
+/**
+ * 中圈 7（含正上）+ 外圈 8（错开半步，避开中圈射线）
+ * 外圈半径须满足：r + 半宽 < 50，避免贴边裁切；两圈角向错开防叠压
+ */
+const INNER_SLOTS = ringSlots(7, 31, 33, 1);
+const OUTER_SLOTS = ringSlots(8, 43, 45, 2, -67.5);
+
+const TIER_WIDTH: Record<1 | 2, string> = {
+  1: "14%",
+  2: "11%",
 };
 
-/** 国家级成片在环绕时再放大一档 */
-const NATION_SAT_WIDTH = "19%";
+/** 省级/校级略大，但仍受环距约束，避免盖住邻卡 */
+function satWidth(award: string, tier: 1 | 2): string {
+  if (/省级|校级/.test(award)) return tier === 1 ? "15.5%" : "12.5%";
+  if (/国家级/.test(award)) return tier === 1 ? "14.5%" : "11.5%";
+  return TIER_WIDTH[tier];
+}
 
 function isNational(award: string) {
   return /国家级/.test(award);
 }
 
-/** 奖项权重：越高越靠近中心、越易进主视觉 */
 function awardRank(award: string): number {
   if (/国家级/.test(award) && !/优秀/.test(award)) return 100;
-  if (/国家级优秀/.test(award)) return 96;
+  if (/国家级优秀|我心中的思政课/.test(award)) return 96;
+  if (/魅力非遗/.test(award)) return 98;
   if (/省级/.test(award) && /一等/.test(award)) return 84;
-  if (/校级/.test(award) && /一等/.test(award)) return 78;
-  if (/省级/.test(award) && /二等|三等/.test(award)) return 64;
+  if (/校级/.test(award) && /特等|一等/.test(award)) return 78;
   if (/省级/.test(award)) return 70;
   if (/校级/.test(award)) return 58;
   if (/品牌/.test(award)) return 52;
@@ -94,6 +103,7 @@ function Media({
 
   if (src.endsWith(".webp")) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         key={src}
         src={src}
@@ -135,24 +145,23 @@ function Satellite({
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const t = window.setTimeout(
       () => setEntered(true),
-      reduce ? 0 : 280 + index * 90,
+      reduce ? 0 : 280 + index * 70,
     );
     return () => window.clearTimeout(t);
   }, [index]);
 
-  const nation = isNational(clip.award);
   const style = {
     left: `${slot.cx}%`,
     top: `${slot.cy}%`,
-    width: nation ? NATION_SAT_WIDTH : TIER_WIDTH[slot.tier],
-    "--pane-delay": `${index * 55}ms`,
+    width: satWidth(clip.award, slot.tier),
+    "--pane-delay": `${index * 45}ms`,
     "--float-delay": `${(index % 7) * -0.7}s`,
   } as CSSProperties;
 
   return (
     <button
       type="button"
-      className={`works-sat absolute works-sat-t${slot.tier}${nation ? " works-sat-nation" : ""}`}
+      className={`works-sat absolute works-sat-t${slot.tier} works-sat-clear`}
       style={style}
       onClick={onPromote}
       title={`${clip.award} · ${clip.title}`}
@@ -162,9 +171,7 @@ function Satellite({
           entered ? "works-pane-in" : "works-pane-prep"
         }`}
       >
-        <div
-          className={`works-pane-bob absolute inset-0 ${floatClass[index % 4]}`}
-        >
+        <div className="works-pane-bob absolute inset-0">
           <div className="works-pane-frame absolute inset-0 overflow-hidden rounded-[3px]">
             <div className="works-pane-shine" aria-hidden />
             <Media
@@ -172,11 +179,12 @@ function Satellite({
               className="works-pane-video pointer-events-none absolute inset-0 h-full w-full object-cover"
             />
             <div className="works-pane-veil pointer-events-none absolute inset-0" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-1.5 md:p-2">
-              <p className="truncate text-[8px] tracking-[0.16em] text-[var(--orange-soft)] md:text-[9px]">
+            {/* 文案叠在画面内，避免伸出后与邻卡重叠 */}
+            <div className="works-sat-caption pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[rgba(61,42,26,0.88)] via-[rgba(61,42,26,0.45)] to-transparent px-1.5 pb-1.5 pt-5 text-center">
+              <p className="line-clamp-1 text-[7px] leading-snug tracking-wide text-[var(--orange-soft)] md:text-[8px]">
                 {clip.award}
               </p>
-              <h3 className="font-display truncate text-[11px] text-white md:text-xs">
+              <h3 className="mt-0.5 line-clamp-1 font-display text-[9px] leading-snug text-white md:text-[10px]">
                 {clip.title}
               </h3>
             </div>
@@ -189,51 +197,115 @@ function Satellite({
 
 function stampLabels(award: string): string[] {
   const out: string[] = [];
-  if (/国家级优秀/.test(award)) out.push("国家级优秀");
-  else if (/国家级/.test(award)) out.push("国家级");
-  if (/省级/.test(award) && /一等/.test(award)) out.push("省级一等");
-  else if (/省级/.test(award)) out.push("省级");
-  if (/校级/.test(award) && /一等/.test(award)) out.push("校级一等");
-  else if (/校级/.test(award)) out.push("校级");
-  if (!out.length && /品牌|市级/.test(award)) out.push(award.slice(0, 6));
+  if (/国家级/.test(award)) out.push("国家级");
+  if (/省级/.test(award)) out.push("省级");
+  if (/校级/.test(award)) out.push("校级");
   return out.slice(0, 2);
+}
+
+/** 中心成片：点击后弹层播完整有声成片（墙面预览 mp4 是 -an 无音轨） */
+function HeroPreview({
+  clip,
+  videoRef,
+  onClose,
+}: {
+  clip: WorkClip;
+  videoRef: RefObject<HTMLVideoElement | null>;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+      const v = videoRef.current;
+      if (v) {
+        v.pause();
+        v.removeAttribute("src");
+        v.load();
+      }
+    };
+  }, [onClose, videoRef]);
+
+  return (
+    <div
+      className="works-preview"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`预览 · ${clip.title}`}
+      onClick={onClose}
+    >
+      <div
+        className="works-preview-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="works-preview-head">
+          <div>
+            <p className="text-[10px] tracking-[0.2em] text-[var(--orange)]">
+              {clip.award}
+            </p>
+            <h3 className="mt-1 font-display text-lg text-[var(--ink)] md:text-xl">
+              {clip.title}
+            </h3>
+          </div>
+          <button
+            type="button"
+            className="works-preview-close"
+            onClick={onClose}
+            aria-label="关闭预览"
+          >
+            关闭
+          </button>
+        </header>
+        <div className="works-preview-stage">
+          <video
+            ref={videoRef}
+            key={clip.id}
+            className="works-preview-video"
+            src={`/works/play/${encodeURIComponent(clip.id)}.mp4`}
+            controls
+            playsInline
+            preload="auto"
+          />
+        </div>
+        <p className="works-preview-hint">Esc / 点击外侧关闭</p>
+      </div>
+    </div>
+  );
 }
 
 function Hero({
   clip,
-  onBack,
+  onPreview,
 }: {
   clip: WorkClip;
-  onBack?: () => void;
+  onPreview: () => void;
 }) {
   const stamps = stampLabels(clip.award);
   return (
-    <article
+    <button
+      type="button"
       key={clip.id}
-      className={`works-hero works-hero-depth works-pane relative${onBack ? " pointer-events-auto" : ""}`}
+      className="works-hero works-hero-depth works-pane relative pointer-events-auto w-full cursor-pointer border-0 bg-transparent p-0 text-left"
       style={{ "--pane-delay": "0ms" } as CSSProperties}
+      onClick={onPreview}
+      title={`点击预览 · ${clip.title}`}
     >
-      <div className="works-pane-bob absolute inset-0">
-        <div className="works-pane-frame works-hero-frame absolute inset-0 overflow-hidden rounded-[4px]">
-          <div className="works-pane-shine" aria-hidden />
-          <Media
-            clip={clip}
-            hiRes
-            className="works-pane-video pointer-events-none absolute inset-0 h-full w-full object-cover"
-          />
-          <div className="works-pane-veil pointer-events-none absolute inset-0" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-3 md:p-4">
-            <p className="text-[10px] tracking-[0.28em] text-[var(--orange-soft)]">
-              {clip.award} · 主视觉
-            </p>
-            <h3 className="font-display text-lg text-white md:text-xl">
-              {clip.title}
-            </h3>
-            <p className="mt-0.5 text-[11px] text-white/70">{clip.tag}</p>
-          </div>
-        </div>
+      <div className="works-pane-frame works-hero-frame relative aspect-[16/10] w-full overflow-hidden rounded-[4px]">
+        <div className="works-pane-shine" aria-hidden />
+        <Media
+          clip={clip}
+          hiRes
+          className="works-pane-video pointer-events-none absolute inset-0 h-full w-full object-cover"
+        />
+        <div className="works-pane-veil pointer-events-none absolute inset-0" />
         {stamps.length > 0 ? (
-          <div className="works-stamp-stack pointer-events-none absolute -right-2 -top-3 z-20 md:-right-3 md:-top-4">
+          <div className="works-stamp-stack pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2">
             {stamps.map((s, i) => (
               <span
                 key={`${clip.id}-${s}`}
@@ -245,97 +317,19 @@ function Hero({
             ))}
           </div>
         ) : null}
-        {onBack ? (
-          <button
-            type="button"
-            className="pointer-events-auto absolute left-2 top-2 z-20 rounded-sm border border-white/40 bg-black/45 px-2 py-1 text-[10px] text-white backdrop-blur-sm transition hover:bg-black/60"
-            onClick={onBack}
-          >
-            ← 返回四强
-          </button>
-        ) : null}
+        <div className="works-hero-caption pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[rgba(61,42,26,0.9)] via-[rgba(61,42,26,0.4)] to-transparent px-3 pb-2.5 pt-8 text-center">
+          <p className="text-[10px] leading-snug tracking-[0.06em] text-[var(--orange-soft)] md:text-[11px]">
+            {clip.award}
+          </p>
+          <h3 className="mt-1 font-display text-sm text-white md:text-base">
+            {clip.title}
+          </h3>
+        </div>
       </div>
-      <div className="aspect-[16/10] w-full" aria-hidden />
-    </article>
+    </button>
   );
 }
 
-/** 四强错落叠放 */
-const NATION_SCATTER: Array<{
-  left: string;
-  top: string;
-  w: string;
-  rot: string;
-  z: number;
-}> = [
-  { left: "6%", top: "8%", w: "48%", rot: "-4.5deg", z: 4 },
-  { left: "48%", top: "2%", w: "46%", rot: "3.2deg", z: 3 },
-  { left: "2%", top: "48%", w: "44%", rot: "2.5deg", z: 2 },
-  { left: "46%", top: "44%", w: "50%", rot: "-3deg", z: 5 },
-];
-
-function NationQuad({
-  clips,
-  onFocus,
-}: {
-  clips: WorkClip[];
-  onFocus: (id: string) => void;
-}) {
-  const four = clips.slice(0, 4);
-  return (
-    <div className="works-nation-quad pointer-events-auto">
-      <p className="works-nation-quad-label">国家级 · 四强错落</p>
-      <div className="works-nation-scatter">
-        {four.map((clip, i) => {
-          const pos = NATION_SCATTER[i] ?? NATION_SCATTER[0]!;
-          return (
-            <button
-              key={clip.id}
-              type="button"
-              className="works-nation-cell works-hero-depth"
-              style={
-                {
-                  left: pos.left,
-                  top: pos.top,
-                  width: pos.w,
-                  zIndex: pos.z,
-                  "--nation-rot": pos.rot,
-                  animationDelay: `${i * 0.2}s`,
-                } as CSSProperties
-              }
-              onClick={() => onFocus(clip.id)}
-              title={`放大 · ${clip.title}`}
-            >
-              <div className="works-pane-frame works-hero-frame absolute inset-0 overflow-hidden rounded-[3px]">
-                <div className="works-pane-shine" aria-hidden />
-                <Media
-                  clip={clip}
-                  hiRes
-                  className="works-pane-video pointer-events-none absolute inset-0 h-full w-full object-cover"
-                />
-                <div className="works-pane-veil pointer-events-none absolute inset-0" />
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 p-2">
-                  <p className="truncate text-[8px] tracking-[0.16em] text-[var(--orange-soft)]">
-                    {clip.award}
-                  </p>
-                  <h3 className="font-display truncate text-xs text-white md:text-sm">
-                    {clip.title}
-                  </h3>
-                </div>
-                <span className="works-stamp works-stamp-mini" aria-hidden>
-                  国家级
-                </span>
-              </div>
-              <span className="block aspect-[16/10] w-full" aria-hidden />
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/** 荣誉轨：成片奖项滚动，讲圆⑧孵化转化 */
 function HonorRail({
   clips,
   onPick,
@@ -380,7 +374,7 @@ function HonorRail({
         <span>
           校级 <strong>{stats.school}</strong>
         </span>
-        <span className="works-honor-stats-tip">荣誉追踪 · 孵化转化</span>
+        <span className="works-honor-stats-tip">中心放大 · 环绕不重叠</span>
       </div>
       <div className="works-honor-rail" aria-label="荣誉滚动轨">
         <div className="works-honor-track">
@@ -390,7 +384,7 @@ function HonorRail({
               type="button"
               className="works-honor-chip"
               onClick={() => onPick(c.id)}
-              title={`切换主视觉 · ${c.title}`}
+              title={`切换中心 · ${c.title}`}
             >
               <span className="works-honor-chip-award">{c.award}</span>
               <span className="works-honor-chip-title">{c.title}</span>
@@ -402,67 +396,67 @@ function HonorRail({
   );
 }
 
-/** 按奖项填对称槽：大奖→近位；成对左右填，避免一边沉 */
-function placeSatellites(rest: WorkClip[]): Array<{ clip: WorkClip; slot: SatSlot }> {
-  const sorted = [...rest].sort(
-    (a, b) =>
-      awardRank(b.award) - awardRank(a.award) ||
-      a.title.localeCompare(b.title, "zh"),
-  );
-  const buckets: Record<1 | 2 | 3, SatSlot[]> = {
-    1: [...SAT_SLOTS.filter((s) => s.tier === 1)].sort((a, b) => a.cx - b.cx),
-    2: [...SAT_SLOTS.filter((s) => s.tier === 2)].sort((a, b) => a.cx - b.cx),
-    3: [...SAT_SLOTS.filter((s) => s.tier === 3)].sort((a, b) => a.cx - b.cx),
-  };
-  const used = new Set<string>();
+/** 中圈优先放 ring=inner / 高奖项；外圈放剩余 */
+function placeSatellites(
+  rest: WorkClip[],
+): Array<{ clip: WorkClip; slot: SatSlot }> {
+  const preferredInner = rest
+    .filter((c) => c.ring === "inner")
+    .sort(
+      (a, b) =>
+        awardRank(b.award) - awardRank(a.award) ||
+        a.title.localeCompare(b.title, "zh"),
+    );
+  const preferredOuter = rest
+    .filter((c) => c.ring !== "inner")
+    .sort(
+      (a, b) =>
+        awardRank(b.award) - awardRank(a.award) ||
+        a.title.localeCompare(b.title, "zh"),
+    );
+
+  // 若 inner 不足，从 outer 高奖补入中圈
+  const innerPool = [...preferredInner];
+  const outerPool = [...preferredOuter];
+  while (innerPool.length < INNER_SLOTS.length && outerPool.length) {
+    innerPool.push(outerPool.shift()!);
+  }
+
   const out: Array<{ clip: WorkClip; slot: SatSlot }> = [];
+  innerPool.slice(0, INNER_SLOTS.length).forEach((clip, i) => {
+    out.push({ clip, slot: INNER_SLOTS[i]! });
+  });
+  outerPool.slice(0, OUTER_SLOTS.length).forEach((clip, i) => {
+    out.push({ clip, slot: OUTER_SLOTS[i]! });
+  });
 
-  function slotKey(s: SatSlot) {
-    return `${s.cx}-${s.cy}`;
-  }
-
-  /** 优先取「更靠左且未用」再取对称右，保持画面平衡 */
-  function takeSlot(prefer: 1 | 2 | 3): SatSlot | null {
-    for (const t of [prefer, 1, 2, 3] as const) {
-      const free = buckets[t].filter((s) => !used.has(slotKey(s)));
-      if (!free.length) continue;
-      const lefts = free.filter((s) => s.cx < 50);
-      const rights = free.filter((s) => s.cx >= 50);
-      const leftCount = out.filter((o) => o.slot.cx < 50).length;
-      const rightCount = out.filter((o) => o.slot.cx >= 50).length;
-      const pickFrom =
-        leftCount <= rightCount
-          ? lefts.length
-            ? lefts
-            : rights
-          : rights.length
-            ? rights
-            : lefts;
-      const hit = pickFrom[0]!;
-      used.add(slotKey(hit));
-      return hit;
-    }
-    return null;
-  }
-
-  for (const clip of sorted) {
-    const rank = awardRank(clip.award);
-    const prefer: 1 | 2 | 3 = isNational(clip.award)
-      ? 1
-      : rank >= 58
-        ? 2
-        : 3;
-    const slot = takeSlot(prefer);
-    if (!slot) break;
-    out.push({ clip, slot });
-  }
+  // 槽位已满则不再硬挤（避免叠片）；多余成片由下方网格承接
   return out;
 }
 
 export function WorksWall() {
   const [clips, setClips] = useState<WorkClip[]>(WORKS_GALLERY);
-  /** 中间只放大一个；点击切换，不自动轮换 */
   const [heroId, setHeroId] = useState("lion-nation");
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  function openPreview() {
+    flushSync(() => setPreviewOpen(true));
+    const v = previewVideoRef.current;
+    if (!v) return;
+    v.muted = false;
+    v.defaultMuted = false;
+    v.volume = 1;
+    const kick = () => {
+      v.muted = false;
+      void v.play().catch(() => {
+        /* 可用控件点播放 */
+      });
+    };
+    kick();
+    v.addEventListener("loadeddata", kick, { once: true });
+    v.addEventListener("canplay", kick, { once: true });
+  }
 
   useEffect(() => {
     void (async () => {
@@ -479,14 +473,19 @@ export function WorksWall() {
               tag: string;
               size: WorkClip["size"];
               source_file: string;
-            }) => ({
-              id: c.clip_id,
-              file: c.source_file,
-              title: c.title,
-              award: c.award,
-              tag: c.tag,
-              size: c.size,
-            }),
+            }) => {
+              const local = WORKS_GALLERY.find((w) => w.id === c.clip_id);
+              return {
+                id: c.clip_id,
+                file: c.source_file,
+                // API 旧种子可能过期：优先本地已改文案
+                title: local?.title ?? c.title,
+                award: local?.award ?? c.award,
+                tag: local?.tag ?? c.tag,
+                size: local?.size ?? c.size,
+                ring: local?.ring,
+              };
+            },
           ),
         );
       } catch {
@@ -495,18 +494,24 @@ export function WorksWall() {
     })();
   }, []);
 
-  const { hero, orbit } = useMemo(() => {
-    const national = clips.find((c) => isNational(c.award));
+  const { hero, orbit, overflow } = useMemo(() => {
+    const centerPref =
+      clips.find((c) => c.ring === "center") ??
+      clips.find((c) => c.id === "lion-nation");
     const h =
       clips.find((c) => c.id === heroId) ??
-      clips.find((c) => c.id === "lion-nation") ??
-      national ??
+      centerPref ??
+      clips.find((c) => isNational(c.award)) ??
       clips[0]!;
     const rest = clips.filter((c) => c.id !== h.id);
-    return { hero: h, orbit: placeSatellites(rest) };
+    const placed = placeSatellites(rest);
+    const placedIds = new Set(placed.map((p) => p.clip.id));
+    return {
+      hero: h,
+      orbit: placed,
+      overflow: rest.filter((c) => !placedIds.has(c.id)),
+    };
   }, [clips, heroId]);
-
-  const heroNation = isNational(hero.award);
 
   return (
     <section className="works-hall">
@@ -529,7 +534,7 @@ export function WorksWall() {
           启航
         </div>
 
-        <div className="works-orbit-stage">
+        <div className="works-orbit-stage works-orbit-stage-rings">
           {orbit.map(({ clip, slot }, i) => (
             <Satellite
               key={clip.id}
@@ -540,13 +545,100 @@ export function WorksWall() {
             />
           ))}
 
-          <div
-            className={`works-orbit-core pointer-events-none${heroNation ? " works-orbit-core-nation" : ""}`}
-          >
-            <Hero clip={hero} />
+          <div className="works-orbit-core works-orbit-core-hero pointer-events-none">
+            <Hero clip={hero} onPreview={openPreview} />
           </div>
         </div>
+
+        {/* 窄屏：网格排布，保证不叠片 */}
+        <div className="works-orbit-grid">
+          <button
+            type="button"
+            className="works-orbit-grid-hero"
+            onClick={openPreview}
+            title={`点击预览 · ${hero.title}`}
+          >
+            <div className="works-pane-frame relative aspect-[16/10] overflow-hidden rounded-[4px]">
+              <Media
+                clip={hero}
+                hiRes
+                className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+              />
+              <div className="works-pane-veil pointer-events-none absolute inset-0" />
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(61,42,26,0.9)] to-transparent px-3 pb-2.5 pt-8 text-left">
+                <p className="line-clamp-1 text-[10px] text-[var(--orange-soft)]">
+                  {hero.award}
+                </p>
+                <h3 className="mt-0.5 font-display text-sm text-white">
+                  {hero.title}
+                </h3>
+              </div>
+            </div>
+          </button>
+          <div className="works-orbit-grid-list">
+            {orbit.map(({ clip }, i) => (
+              <button
+                key={`grid-${clip.id}`}
+                type="button"
+                className="works-orbit-grid-item"
+                style={{ "--pane-delay": `${i * 40}ms` } as CSSProperties}
+                onClick={() => setHeroId(clip.id)}
+                title={clip.title}
+              >
+                <div className="works-pane-frame relative aspect-[4/3] overflow-hidden rounded-[3px]">
+                  <Media
+                    clip={clip}
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="works-pane-veil pointer-events-none absolute inset-0" />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(61,42,26,0.88)] to-transparent px-1.5 pb-1.5 pt-4 text-center">
+                    <p className="line-clamp-1 text-[8px] text-[var(--orange-soft)]">
+                      {clip.award}
+                    </p>
+                    <h3 className="mt-0.5 line-clamp-1 font-display text-[10px] text-white">
+                      {clip.title}
+                    </h3>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {overflow.length > 0 ? (
+          <div className="works-orbit-overflow">
+            {overflow.map((clip) => (
+              <button
+                key={`ov-${clip.id}`}
+                type="button"
+                className="works-orbit-grid-item"
+                onClick={() => setHeroId(clip.id)}
+                title={clip.title}
+              >
+                <div className="works-pane-frame relative aspect-[4/3] overflow-hidden rounded-[3px]">
+                  <Media
+                    clip={clip}
+                    className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(61,42,26,0.88)] to-transparent px-1.5 pb-1.5 pt-4 text-center">
+                    <h3 className="line-clamp-1 font-display text-[10px] text-white">
+                      {clip.title}
+                    </h3>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
+
+      {previewOpen ? (
+        <HeroPreview
+          clip={hero}
+          videoRef={previewVideoRef}
+          onClose={() => setPreviewOpen(false)}
+        />
+      ) : null}
     </section>
   );
 }

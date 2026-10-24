@@ -35,7 +35,16 @@ export default function LoginPage() {
           className="absolute inset-0"
           style={{
             background:
-              "linear-gradient(105deg, rgba(255,248,242,0.82) 0%, rgba(255,248,242,0.42) 38%, rgba(255,241,230,0.12) 62%, rgba(20,30,50,0.18) 100%)",
+              "linear-gradient(105deg, rgba(255,248,242,0.96) 0%, rgba(255,248,242,0.9) 28%, rgba(255,241,230,0.55) 48%, rgba(255,241,230,0.18) 68%, rgba(20,30,50,0.22) 100%)",
+          }}
+          aria-hidden
+        />
+        {/* 左侧文案区加厚暖白雾，保证浅色机身背景上可读 */}
+        <div
+          className="absolute inset-y-0 left-0 w-[min(58%,42rem)]"
+          style={{
+            background:
+              "linear-gradient(90deg, rgba(255,248,242,0.97) 0%, rgba(255,248,242,0.88) 55%, rgba(255,248,242,0) 100%)",
           }}
           aria-hidden
         />
@@ -43,7 +52,7 @@ export default function LoginPage() {
           className="absolute inset-x-0 bottom-0 h-1/3"
           style={{
             background:
-              "linear-gradient(to top, rgba(61,42,26,0.28) 0%, transparent 100%)",
+              "linear-gradient(to top, rgba(61,42,26,0.32) 0%, transparent 100%)",
           }}
           aria-hidden
         />
@@ -65,10 +74,10 @@ export default function LoginPage() {
 
       <header className="relative z-10 flex shrink-0 items-center justify-between px-5 py-3 md:px-8 md:py-4">
         <div className="flex items-baseline gap-3">
-          <span className="font-brand gold-shimmer-text text-xl md:text-2xl">
+          <span className="font-brand text-xl text-[var(--orange-deep)] drop-shadow-[0_1px_0_rgba(255,248,242,0.9)] md:text-2xl">
             启航
           </span>
-          <span className="hidden text-[11px] tracking-[0.22em] text-[var(--muted)] sm:inline">
+          <span className="hidden text-[11px] tracking-[0.22em] text-[var(--ink)]/70 sm:inline">
             思政智能体 · 空乘课堂
           </span>
         </div>
@@ -78,32 +87,35 @@ export default function LoginPage() {
       </header>
 
       <div className="relative z-10 mx-auto grid w-full max-w-6xl flex-1 grid-cols-1 items-center gap-6 px-5 py-4 md:grid-cols-[1fr_0.92fr] md:gap-8 md:px-8 md:py-6">
-        <section className="space-y-4 md:space-y-5">
-          <p className="animate-rise-delay-1 text-[10px] tracking-[0.28em] text-[var(--orange)] md:text-xs">
+        <section className="space-y-4 md:space-y-5 [text-shadow:0_1px_0_rgba(255,248,242,0.85)]">
+          <p className="animate-rise-delay-1 text-[10px] font-medium tracking-[0.28em] text-[var(--orange-deep)] md:text-xs">
             QI HANG · ARTIFICIAL INTELLIGENCE +
           </p>
           <h1 className="animate-rise-delay-1 font-brand animate-brand-glow text-[2.75rem] leading-none text-[var(--ink)] md:text-5xl lg:text-6xl">
             启航
           </h1>
-          <p className="animate-rise-delay-2 font-display gold-shimmer-text text-base md:text-xl">
-            人机同飞，思政入云
+          <p className="animate-rise-delay-2 font-display text-base font-semibold text-[var(--orange-deep)] md:text-xl">
+            智教慧学，思政领航
           </p>
-          <p className="animate-rise-delay-2 max-w-md text-xs leading-6 text-[var(--muted)] md:text-sm md:leading-7">
-            智能学伴、教师工作台与研讨社区一体协同，让百人合班里每一位学生都被听见，把空乘职业情境里的价值抉择讲深、讲透、讲活。
-          </p>
+          <div className="animate-rise-delay-2 max-w-md space-y-1.5 text-xs leading-6 text-[var(--ink)]/78 md:text-sm md:leading-7">
+            <p>在大班额的思政课堂，如何让每一个声音「被听见」？</p>
+            <p>
+              「启航」智能体，以 AI 赋能思政课堂，用启发式答疑启迪，用沉浸式情景推演，陪伴每一位云端之上的你们，上好这堂「大思政课」。
+            </p>
+          </div>
 
-          <ul className="animate-rise-delay-3 grid max-w-md grid-cols-3 gap-2 border-t border-[var(--line)] pt-4">
+          <ul className="animate-rise-delay-3 grid max-w-md grid-cols-3 gap-2 border-t border-[var(--ink)]/15 pt-4">
             {[
               { k: "24h", v: "启发式答疑" },
               { k: "五式", v: "课中互动剧场" },
               { k: "五库", v: "学情越用越准" },
             ].map((item) => (
               <li key={item.k} className="space-y-0.5">
-                <div className="font-display text-lg text-[var(--orange)] md:text-xl">
+                <div className="font-display text-lg font-semibold text-[var(--orange-deep)] md:text-xl">
                   {item.k}
                 </div>
-                <div className="stat-underline mt-1 h-px w-8 bg-gradient-to-r from-[var(--orange)] to-transparent" />
-                <div className="text-[10px] text-[var(--muted)] md:text-xs">
+                <div className="stat-underline mt-1 h-px w-8 bg-gradient-to-r from-[var(--orange-deep)] to-transparent" />
+                <div className="text-[10px] text-[var(--ink)]/70 md:text-xs">
                   {item.v}
                 </div>
               </li>

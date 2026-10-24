@@ -52,7 +52,7 @@ export function WeeklyReportPanel() {
 
       {!report ? (
         <p className="animate-pulse text-sm text-[var(--muted)]">
-          正在汇总转接、任务与薄弱点…
+          正在汇总近 7 日答疑、转接、闯关回流与任务…
         </p>
       ) : (
         <div className="animate-rise space-y-4 rounded-sm border border-[var(--line)] bg-white p-5 shadow-[0_12px_36px_rgba(196,92,26,0.08)]">

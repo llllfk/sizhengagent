@@ -171,7 +171,7 @@ export function InteractiveKickoff({
             </p>
           ) : null}
           <p className="mt-8 font-display text-sm tracking-[0.28em] text-[var(--ink)]">
-            人机同飞 · 开始
+            智能学伴 · 开始
           </p>
         </div>
       )}

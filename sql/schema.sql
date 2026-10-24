@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS qa_session (
 
 -- 兼容已建库
 ALTER TABLE qa_session ADD COLUMN IF NOT EXISTS question TEXT;
+ALTER TABLE qa_session ADD COLUMN IF NOT EXISTS coze_conversation_id VARCHAR(64);
 
 CREATE TABLE IF NOT EXISTS qa_escalation (
   id BIGSERIAL PRIMARY KEY,
@@ -223,3 +224,21 @@ CREATE TABLE IF NOT EXISTS work_gallery (
 );
 
 CREATE INDEX IF NOT EXISTS idx_work_gallery_sort ON work_gallery (sort_order, clip_id);
+
+-- 11. 学情问题清单（课中闯关错题 / 答疑回流等）
+CREATE TABLE IF NOT EXISTS learning_issue (
+  id BIGSERIAL PRIMARY KEY,
+  issue_id VARCHAR(64) NOT NULL UNIQUE,
+  student_id VARCHAR(64) NOT NULL,
+  source VARCHAR(32) NOT NULL DEFAULT 'quiz',
+  title VARCHAR(200) NOT NULL,
+  detail TEXT NOT NULL,
+  weak_tag VARCHAR(64),
+  status VARCHAR(16) NOT NULL DEFAULT 'open',
+  meta JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_learning_issue_student ON learning_issue (student_id, status);
+CREATE INDEX IF NOT EXISTS idx_learning_issue_open ON learning_issue (status, created_at DESC);

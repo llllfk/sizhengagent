@@ -243,18 +243,85 @@ export function TypeBeaconBoard({
   );
 }
 
-/** 由学员画像推导雷达轴（演示可读、答辩好讲） */
+/**
+ * 学员雷达轴：优先用服务端按答疑/闯关/任务/作品算出的 radar_axes；
+ * 无则回退到本地公式（兼容旧接口）。
+ */
 export function buildStudentRadarAxes(input: {
   type_tag: string;
   cognition_level: number;
   weak_points: string[];
   task_done?: number;
+  radar_axes?: RadarAxis[];
+  activity?: {
+    qa_sessions?: number;
+    qa_rounds?: number;
+    open_issues?: number;
+    quiz_issues?: number;
+    works_count?: number;
+    task_done?: number;
+    task_total?: number;
+    quiz_last?: { score: number; total: number } | null;
+  };
 }): RadarAxis[] {
+  if (input.radar_axes?.length) return input.radar_axes;
+
+  const clamp = (n: number) => Math.max(12, Math.min(98, Math.round(n)));
   const tag = input.type_tag;
+  const a = input.activity;
+  if (a) {
+    const boost = (t: string) => (tag === t ? 14 : 0);
+    return [
+      {
+        key: "expression",
+        label: "表达",
+        value: clamp(
+          28 +
+            (a.qa_sessions ?? 0) * 10 +
+            (a.qa_rounds ?? 0) * 3 +
+            boost("expression"),
+        ),
+      },
+      {
+        key: "creation",
+        label: "创作",
+        value: clamp(26 + (a.works_count ?? 0) * 22 + boost("creation")),
+      },
+      {
+        key: "experience",
+        label: "体验",
+        value: clamp(
+          26 +
+            (a.quiz_issues ?? 0) * 10 +
+            (a.quiz_last ? 12 : 0) +
+            boost("experience"),
+        ),
+      },
+      {
+        key: "cognition",
+        label: "认知",
+        value: clamp((input.cognition_level || 1) * 16 + 18),
+      },
+      {
+        key: "practice",
+        label: "实践",
+        value: clamp(30 + (a.task_done ?? input.task_done ?? 0) * 14),
+      },
+      {
+        key: "focus",
+        label: "短板补强",
+        value: clamp(
+          88 -
+            (a.open_issues ?? 0) * 10 -
+            (input.weak_points?.length ?? 0) * 6,
+        ),
+      },
+    ];
+  }
+
   const cog = Math.max(1, Math.min(5, input.cognition_level || 1));
   const weak = input.weak_points?.length ?? 0;
   const tasks = input.task_done ?? Math.max(1, 4 - weak);
-
   const base = (mine: boolean) => (mine ? 90 : 48);
   return [
     {
@@ -297,6 +364,8 @@ export function buildClassRadarAxes(input: {
   works_count: number;
   student_count: number;
   weak_top?: number;
+  open_learning_issues?: number;
+  week_qa?: number;
 }): RadarAxis[] {
   const total = Math.max(
     1,
@@ -308,7 +377,13 @@ export function buildClassRadarAxes(input: {
     100,
     Math.round((input.works_count / Math.max(1, input.student_count)) * 55 + 35),
   );
-  const weakScore = Math.max(30, 100 - (input.weak_top ?? 2) * 12);
+  const weakScore = Math.max(
+    18,
+    100 -
+      (input.weak_top ?? 0) * 10 -
+      (input.open_learning_issues ?? 0) * 4,
+  );
+  const qaNorm = Math.min(100, 28 + (input.week_qa ?? 0) * 12);
   return [
     {
       key: "expression",
@@ -323,7 +398,10 @@ export function buildClassRadarAxes(input: {
     {
       key: "experience",
       label: "体验",
-      value: Math.round((input.type_dist.experience / total) * 100),
+      value: Math.max(
+        Math.round((input.type_dist.experience / total) * 100),
+        qaNorm > 40 ? Math.round(qaNorm * 0.55) : 0,
+      ),
     },
     {
       key: "tasks",

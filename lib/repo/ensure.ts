@@ -19,30 +19,84 @@ import {
   pgUpsertWorkGallery,
 } from "@/lib/repo/pg";
 
-let ready: Promise<boolean> | null = null;
+let schemaReady: Promise<boolean> | null = null;
+let seedReady: Promise<boolean> | null = null;
 
-/** 首次请求时：执行 schema + 测试账号 + 空库灌演示种子。无 DATABASE_URL 则跳过。 */
+/**
+ * 运行时默认只保证表结构存在（幂等、很快）。
+ * 演示种子请用 seedPgIfNeeded()，勿挂在登录上。
+ */
 export function ensurePg(): Promise<boolean> {
   if (!hasDb()) return Promise.resolve(false);
-  if (!ready) ready = bootstrap().catch((e) => {
-    console.error("[pg] bootstrap failed", e);
-    ready = null;
-    return false;
-  });
-  return ready;
+  if (!schemaReady) {
+    schemaReady = applySchema().catch((e) => {
+      console.error("[pg] schema failed", e);
+      schemaReady = null;
+      return false;
+    });
+  }
+  return schemaReady;
 }
 
-async function bootstrap() {
+async function applySchema() {
   const schemaPath = join(process.cwd(), "sql", "schema.sql");
   const sql = readFileSync(schemaPath, "utf8");
   await query(sql);
+  return true;
+}
+
+/**
+ * 空库时一次性灌入演示内容（账号、题库、语料、案例、成果等）。
+ * 已有足够数据则立刻返回。供 /api/health 或运维主动触发，不跟登录绑。
+ */
+export function seedPgIfNeeded(): Promise<boolean> {
+  if (!hasDb()) return Promise.resolve(false);
+  if (!seedReady) {
+    seedReady = runSeedIfNeeded().catch((e) => {
+      console.error("[pg] seed failed", e);
+      seedReady = null;
+      return false;
+    });
+  }
+  return seedReady;
+}
+
+async function runSeedIfNeeded() {
+  const ok = await ensurePg();
+  if (!ok) return false;
 
   await ensureTestUsers();
   await ensureAccountTasks();
-  await ensureCabinAssemblyCases();
-  await ensureKnowledgeCorpus();
-  await ensureInteractiveBank();
-  await ensureWorkGallery();
+
+  const stock = await query<{
+    quiz: string;
+    knowledge: string;
+    cabin: string;
+    works: string;
+  }>(
+    `select
+       (select count(*)::text from interactive_content where type='quiz') as quiz,
+       (select count(*)::text from knowledge_snippet) as knowledge,
+       (select count(*)::text from cabin_case) as cabin,
+       (select count(*)::text from work_gallery) as works`,
+  );
+  const row = stock.rows[0];
+  const needHeavy =
+    Number(row?.quiz ?? 0) < 40 ||
+    Number(row?.knowledge ?? 0) < 10 ||
+    Number(row?.cabin ?? 0) < 8 ||
+    Number(row?.works ?? 0) < 8;
+
+  if (needHeavy) {
+    console.log("[pg] heavy seed start", row);
+    await Promise.all([
+      ensureCabinAssemblyCases(),
+      ensureKnowledgeCorpus(),
+      ensureInteractiveBank(),
+      ensureWorkGallery(),
+    ]);
+    console.log("[pg] heavy seed done");
+  }
 
   const count = await query<{ c: string }>(
     `select count(*)::text as c from student_profile`,
@@ -177,6 +231,9 @@ async function bootstrap() {
   console.log("[pg] seed demo data ok");
   return true;
 }
+
+/** @deprecated 兼容旧名：现仅建表，不再灌种子 */
+export const bootstrapPg = ensurePg;
 
 /** 汇编 15 条客舱案例幂等入库 */
 async function ensureCabinAssemblyCases() {

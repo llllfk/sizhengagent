@@ -104,6 +104,7 @@ export function LoginForm() {
         safeNext(searchParams.get("next")) ||
         String(json.data.href || "/companion");
       // 整页跳转，确保随后请求带上刚写入的 Set-Cookie
+      // 启航门已缩短；演示仍保留仪式页，点击可随时跳过
       window.location.assign(
         `/embark?to=${encodeURIComponent(dest)}&portal=${encodeURIComponent(portal)}`,
       );

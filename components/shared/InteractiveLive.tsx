@@ -55,6 +55,12 @@ export function InteractiveLive() {
     score: number;
     total: number;
     followup_prompt: string;
+    profile_writeback?: {
+      weak_points: string[];
+      cognition_level: number;
+      new_tags: string[];
+      issue_count: number;
+    } | null;
   } | null>(null);
   const [cabinRole, setCabinRole] = useState("乘务员");
   const [cabinText, setCabinText] = useState("");
@@ -366,6 +372,33 @@ export function InteractiveLive() {
               <p className="mt-2 whitespace-pre-wrap text-xs leading-6 text-[var(--ink)]">
                 {quizResult.followup_prompt}
               </p>
+              {quizResult.profile_writeback ? (
+                <div className="mt-3 space-y-1.5 border-t border-[var(--orange)]/20 pt-2 text-[11px] text-[var(--orange-deep)]">
+                  <p>
+                    学情已回写 · 认知 L
+                    {quizResult.profile_writeback.cognition_level}
+                    {quizResult.profile_writeback.issue_count > 0
+                      ? ` · 问题清单 +${quizResult.profile_writeback.issue_count}`
+                      : " · 全对"}
+                  </p>
+                  {(quizResult.profile_writeback.new_tags?.length ?? 0) > 0 ? (
+                    <p className="text-[var(--ink)]">
+                      薄弱点新增：
+                      {quizResult.profile_writeback.new_tags.join("、")}
+                    </p>
+                  ) : null}
+                  <p>
+                    <a href="/profile" className="underline underline-offset-2">
+                      查看我的学情
+                    </a>
+                    <span className="text-[var(--muted)]"> · 教师端「学情看板」同步可见</span>
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 border-t border-[var(--line)] pt-2 text-[11px] text-[var(--muted)]">
+                  本次未写入学情（请确认已登录学生账号且数据库可用）
+                </p>
+              )}
             </div>
           ) : null}
         </div>

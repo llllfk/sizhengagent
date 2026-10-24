@@ -5,7 +5,7 @@ import { jsonError } from "@/lib/api/errors";
 import { requireUser } from "@/lib/auth/session";
 import { getWorkClip } from "@/lib/content/worksGallery";
 import {
-  resolveWorksVideoPath,
+  worksPlayPath,
   worksPreviewPath,
 } from "@/lib/content/worksGalleryPath";
 import {
@@ -21,7 +21,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/works/media/:id
- * 优先本地 6 秒预览 → 再 S3 成片 → 再本地成片
+ * - 默认：本地 6 秒无声预览（墙面同屏）
+ * - ?full=1：H.264+AAC 可播成片（原片 HEVC 在 Chrome 会黑屏有声）
  */
 export async function GET(
   request: NextRequest,
@@ -35,13 +36,35 @@ export async function GET(
       return NextResponse.json({ error: "成片不存在" }, { status: 404 });
     }
 
-    const preview = worksPreviewPath(clip.id);
-    const filePath =
-      (existsSync(preview) ? preview : null) ||
-      resolveWorksVideoPath(clip, false);
+    const wantFull = request.nextUrl.searchParams.get("full") === "1";
 
-    if (filePath && existsSync(filePath)) {
-      return streamFile(request, filePath);
+    if (!wantFull) {
+      const preview = worksPreviewPath(clip.id);
+      if (existsSync(preview)) {
+        return streamFile(request, preview);
+      }
+    }
+
+    // 弹层：只走浏览器可解码片源，绝不直接吐 HEVC 原片
+    if (wantFull) {
+      const play = worksPlayPath(clip.id);
+      if (existsSync(play)) {
+        return streamFile(request, play);
+      }
+      if (hasObjectStorage()) {
+        const playKey = `works/play/${clip.id}.mp4`;
+        if (await objectExists(playKey)) {
+          return NextResponse.redirect(await getSignedPlayUrl(playKey), 302);
+        }
+      }
+      return NextResponse.json(
+        {
+          error:
+            "缺少网页可播成片：请在「代码」目录执行 npm run play:works（HEVC→H.264）",
+          file: clip.file,
+        },
+        { status: 404 },
+      );
     }
 
     const keyCandidates = [

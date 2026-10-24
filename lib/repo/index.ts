@@ -41,9 +41,18 @@ export async function createSession(input: {
   question: string;
   q_type: QuestionType;
   firstPrompt: string;
+  coze_conversation_id?: string | null;
 }) {
   await requirePg();
   return pg.pgCreateSession(input);
+}
+
+export async function setCozeConversationId(
+  sessionId: string,
+  conversationId: string,
+) {
+  await requirePg();
+  return pg.pgSetCozeConversationId(sessionId, conversationId);
 }
 
 export async function getSession(sessionId: string) {
@@ -224,4 +233,19 @@ export async function upsertKnowledgeSnippet(
 export async function listWorkGallery() {
   await requirePg();
   return pg.pgListWorkGallery();
+}
+
+export async function applyQuizResult(
+  input: Parameters<typeof pg.pgApplyQuizResult>[0],
+) {
+  await requirePg();
+  return pg.pgApplyQuizResult(input);
+}
+
+export async function listLearningIssues(
+  studentId?: string,
+  status: "open" | "done" | "all" = "open",
+) {
+  await requirePg();
+  return pg.pgListLearningIssues(studentId, status);
 }

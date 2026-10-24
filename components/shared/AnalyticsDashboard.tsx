@@ -8,16 +8,34 @@ import {
 } from "@/components/shared/ProfileRadar";
 
 type StudentRow = {
+  student_id?: string;
   name: string;
   type_tag: string;
   cognition_level: number;
   task_done: number;
   weak_points: string[];
+  open_issues?: number;
 };
 
 type Analytics = {
+  data_source?: string;
   pending_escalations: number;
   open_sessions: number;
+  open_learning_issues?: number;
+  recent_issues?: Array<{
+    issue_id: string;
+    student_id: string;
+    student_name?: string;
+    title: string;
+    weak_tag: string | null;
+  }>;
+  week?: {
+    since: string;
+    qa_sessions_7d: number;
+    escalations_7d: number;
+    learning_issues_7d: number;
+    quiz_issues_7d: number;
+  };
   student_count: number;
   type_dist: { expression: number; creation: number; experience: number };
   task_status: { todo: number; doing: number; done: number };
@@ -73,11 +91,11 @@ export function AnalyticsDashboard() {
   const dominant = useMemo(() => {
     if (!data) return "creation";
     const d = data.type_dist;
-    const entries = [
+    const entries: Array<[string, number]> = [
       ["expression", d.expression],
       ["creation", d.creation],
       ["experience", d.experience],
-    ] as const;
+    ];
     return entries.sort((a, b) => b[1] - a[1])[0]![0];
   }, [data]);
 
@@ -89,6 +107,8 @@ export function AnalyticsDashboard() {
       works_count: data.works_count,
       student_count: data.student_count,
       weak_top: data.weak_points[0]?.count,
+      open_learning_issues: data.open_learning_issues,
+      week_qa: data.week?.qa_sessions_7d,
     });
   }, [data]);
 
@@ -113,7 +133,8 @@ export function AnalyticsDashboard() {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <p className="text-[10px] tracking-[0.28em] text-[var(--orange)]">
-                大规模因材施教 · 班级画像
+                大规模因材施教 · 实时库
+                {data.data_source === "postgres_live" ? " · LIVE" : ""}
               </p>
               <h3 className="mt-1 font-display text-2xl text-[var(--ink)]">
                 三型灯牌 · 班级雷达
@@ -122,8 +143,12 @@ export function AnalyticsDashboard() {
             <div className="flex flex-wrap gap-3 text-center">
               {[
                 { k: "学员", v: data.student_count },
-                { k: "完成率", v: `${data.task_completion_rate}%` },
-                { k: "作品", v: data.works_count },
+                { k: "7日答疑", v: data.week?.qa_sessions_7d ?? "—" },
+                { k: "7日转接", v: data.week?.escalations_7d ?? "—" },
+                {
+                  k: "问题清单",
+                  v: data.open_learning_issues ?? 0,
+                },
               ].map((c) => (
                 <div
                   key={c.k}
@@ -217,6 +242,9 @@ export function AnalyticsDashboard() {
               </div>
               <p className="mt-1 text-[11px] text-[var(--muted)]">
                 L{s.cognition_level} · 完成 {s.task_done} 项
+                {(s.open_issues ?? 0) > 0
+                  ? ` · 待办 ${s.open_issues}`
+                  : ""}
               </p>
               <p className="mt-1 line-clamp-1 text-[11px] text-[var(--muted)]">
                 {s.weak_points.join("、") || "薄弱点未标注"}
@@ -225,6 +253,39 @@ export function AnalyticsDashboard() {
           ))}
         </div>
       </div>
+
+      {(data.recent_issues?.length ?? 0) > 0 ? (
+        <div className="space-y-3">
+          <p className="text-[10px] tracking-[0.22em] text-[var(--orange)]">
+            实时问题清单 · 闯关 / 答疑转接
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {data.recent_issues!.map((issue) => {
+              const who =
+                issue.student_name ??
+                data.student_rows.find((s) => s.student_id === issue.student_id)
+                  ?.name ??
+                issue.student_id;
+              return (
+                <div
+                  key={issue.issue_id}
+                  className="rounded-sm border border-[var(--orange)]/25 bg-[var(--orange-fog)]/40 px-3 py-2.5"
+                >
+                  <p className="text-[11px] text-[var(--muted)]">{who}</p>
+                  <p className="mt-0.5 text-sm text-[var(--orange-deep)]">
+                    {issue.title}
+                  </p>
+                  {issue.weak_tag ? (
+                    <p className="mt-1 text-[10px] tracking-wider text-[var(--muted)]">
+                      标签 · {issue.weak_tag}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

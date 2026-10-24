@@ -8,6 +8,8 @@ export type WorkClip = {
   tag: string;
   /** 墙面占位：异形尺寸 */
   size: "hero" | "tall" | "wide" | "md" | "sm";
+  /** 环绕层级：center 中心最大 · inner 中圈 · outer 外圈 */
+  ring?: "center" | "inner" | "outer";
 };
 
 /**
@@ -26,14 +28,92 @@ export function galleryPublicRel(id: string): string {
   return galleryObjectKey(id);
 }
 
+/**
+ * 文案：有客户备注的已改；未备注的保留原命名。
+ * 中心默认：醒狮·少年路
+ */
 export const WORKS_GALLERY: WorkClip[] = [
+  {
+    id: "lion-nation",
+    file: "1.国家级：醒狮·少年路.mp4",
+    title: "醒狮·少年路",
+    award: "国家级·教育部「魅力非遗」优秀原创作品",
+    tag: "文化自信",
+    size: "hero",
+    ring: "center",
+  },
+  {
+    id: "grow-up",
+    file: "5.国家级优秀：长大后就成了您.mp4",
+    title: "长大后，我就成了您",
+    award: "国家级·「我心中的思政课」大学生微电影展示活动",
+    tag: "榜样力量",
+    size: "wide",
+    ring: "inner",
+  },
+  {
+    id: "lion-school",
+    file: "1.校级一等奖醒狮 文化安全.mp4",
+    title: "醒狮云跃·思政领航·青春薪火",
+    award: "省级·「技能成才，强国有我」一等奖",
+    tag: "文化安全",
+    size: "md",
+    ring: "inner",
+  },
+  {
+    id: "walk-prov",
+    file: "4.省级和校级一等奖：行走的思政课.mp4",
+    title: "行走的思政课",
+    award: "校级·行走的思政课特等奖",
+    tag: "行走思政",
+    size: "md",
+    ring: "inner",
+  },
+  {
+    id: "sanxiaxiang",
+    file: "8.省级：三下乡.mp4",
+    title: "青春筑梦基层行",
+    award: "校级·助力「百千万工程」",
+    tag: "实践育人",
+    size: "md",
+    ring: "inner",
+  },
+  {
+    id: "interview-campus",
+    file: "11.校园采访.mp4",
+    title: "「大思政」下青年的文化传承路",
+    award: "省级·第十届广东高校网络媒体展示一等奖",
+    tag: "文化传承",
+    size: "md",
+    ring: "inner",
+  },
+  {
+    id: "campus-safe",
+    file: "10.校园安全.mp4",
+    title: "根脉·新生",
+    award: "校级·国家安全教育微视频大赛特等奖",
+    tag: "安全底线",
+    size: "tall",
+    ring: "inner",
+  },
+  {
+    id: "social",
+    file: "3.国家级：社会服务.mp4",
+    title: "思政青焰",
+    award: "省级·「打卡广东红」优秀短视频",
+    tag: "奉献担当",
+    size: "sm",
+    ring: "inner",
+  },
+  // —— 以下未备注：保留原命名，外圈环绕 ——
   {
     id: "cabin-sim",
     file: "9.客舱模拟.mp4",
     title: "客舱模拟",
     award: "校本实践",
     tag: "客舱思政",
-    size: "hero",
+    size: "sm",
+    ring: "outer",
   },
   {
     id: "qihang-blue",
@@ -41,7 +121,8 @@ export const WORKS_GALLERY: WorkClip[] = [
     title: "启航逐梦蓝天",
     award: "品牌成片",
     tag: "空乘梦想",
-    size: "wide",
+    size: "sm",
+    ring: "outer",
   },
   {
     id: "rescue-nation",
@@ -49,55 +130,8 @@ export const WORKS_GALLERY: WorkClip[] = [
     title: "紧急救助",
     award: "国家级",
     tag: "生命至上",
-    size: "tall",
-  },
-  {
-    id: "walk-prov",
-    file: "4.省级和校级一等奖：行走的思政课.mp4",
-    title: "行走的思政课",
-    award: "省级·校级一等奖",
-    tag: "行走思政",
-    size: "md",
-  },
-  {
-    id: "lion-nation",
-    file: "1.国家级：醒狮·少年路.mp4",
-    title: "醒狮·少年路",
-    award: "国家级",
-    tag: "文化自信",
-    size: "md",
-  },
-  {
-    id: "lion-school",
-    file: "1.校级一等奖醒狮 文化安全.mp4",
-    title: "醒狮·文化安全",
-    award: "校级一等奖",
-    tag: "文化安全",
     size: "sm",
-  },
-  {
-    id: "grow-up",
-    file: "5.国家级优秀：长大后就成了您.mp4",
-    title: "长大后就成了您",
-    award: "国家级优秀",
-    tag: "榜样力量",
-    size: "wide",
-  },
-  {
-    id: "social",
-    file: "3.国家级：社会服务.mp4",
-    title: "社会服务",
-    award: "国家级",
-    tag: "奉献担当",
-    size: "sm",
-  },
-  {
-    id: "sanxiaxiang",
-    file: "8.省级：三下乡.mp4",
-    title: "三下乡",
-    award: "省级",
-    tag: "实践育人",
-    size: "md",
+    ring: "outer",
   },
   {
     id: "walk-bronze",
@@ -106,14 +140,7 @@ export const WORKS_GALLERY: WorkClip[] = [
     award: "省级三等奖",
     tag: "行走思政",
     size: "sm",
-  },
-  {
-    id: "campus-safe",
-    file: "10.校园安全.mp4",
-    title: "校园安全",
-    award: "校本专题",
-    tag: "安全底线",
-    size: "tall",
+    ring: "outer",
   },
   {
     id: "cyber",
@@ -121,7 +148,8 @@ export const WORKS_GALLERY: WorkClip[] = [
     title: "网络安全",
     award: "校本专题",
     tag: "网络文明",
-    size: "md",
+    size: "sm",
+    ring: "outer",
   },
   {
     id: "integrity",
@@ -130,14 +158,7 @@ export const WORKS_GALLERY: WorkClip[] = [
     award: "校本专题",
     tag: "清风正气",
     size: "sm",
-  },
-  {
-    id: "interview-campus",
-    file: "11.校园采访.mp4",
-    title: "校园采访",
-    award: "表达型任务",
-    tag: "观点表达",
-    size: "md",
+    ring: "outer",
   },
   {
     id: "interview",
@@ -146,6 +167,7 @@ export const WORKS_GALLERY: WorkClip[] = [
     award: "职业素养",
     tag: "职业形象",
     size: "sm",
+    ring: "outer",
   },
   {
     id: "rescue-short",
@@ -154,6 +176,7 @@ export const WORKS_GALLERY: WorkClip[] = [
     award: "实训成片",
     tag: "应急处置",
     size: "sm",
+    ring: "outer",
   },
 ];
 
