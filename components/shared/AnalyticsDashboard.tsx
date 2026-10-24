@@ -126,7 +126,7 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* 答辩主视觉：灯牌 + 雷达 */}
+      {/* 主视觉：灯牌 + 雷达 */}
       <div className="profile-hero relative overflow-hidden rounded-sm border border-[var(--glass-border)] bg-white/85 p-5 md:p-6">
         <div className="profile-hero-glow" aria-hidden />
         <div className="relative z-10 space-y-5">

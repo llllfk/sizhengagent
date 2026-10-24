@@ -36,7 +36,7 @@ const communityStory: StoryStep[] = [
   { href: "/highlights", label: "精华", tip: "回灌学伴" },
 ];
 
-export function DemoStoryStrip({
+export function StoryStrip({
   tone,
 }: {
   tone: "student" | "teacher" | "community";
@@ -51,11 +51,11 @@ export function DemoStoryStrip({
 
   return (
     <nav
-      aria-label="演示主路径"
+      aria-label="学习路径"
       className="mb-5 flex flex-wrap items-center gap-1.5 rounded-sm border border-[var(--line)] bg-white/70 px-3 py-2 backdrop-blur-sm"
     >
       <span className="mr-1 text-[10px] tracking-[0.2em] text-[var(--orange)]">
-        演示路径
+        学习路径
       </span>
       {steps.map((s, i) => {
         const active =

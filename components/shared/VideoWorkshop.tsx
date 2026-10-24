@@ -163,7 +163,7 @@ export function VideoWorkshop() {
       ) : null}
 
       <p className="text-[11px] text-[var(--muted)]">
-        演示拦截：主题填「别管安全偷偷放行」或含「违禁占位词」再点生成脚本。
+        内容安全提示：主题含违规表述或「别管安全偷偷放行」时将被拦截。
       </p>
 
       <div className="flex flex-wrap gap-2">
@@ -209,7 +209,7 @@ export function VideoWorkshop() {
       ) : null}
 
       <div className="rounded-sm border border-[var(--line)] bg-white p-4 space-y-3">
-        <p className="text-xs text-[var(--muted)]">④ 成片归档（演示填 URI）</p>
+        <p className="text-xs text-[var(--muted)]">④ 成片归档（填写成片 URI）</p>
         <input
           className="w-full rounded-sm border border-[var(--line)] px-3 py-2 text-sm outline-none focus:border-[var(--orange)]"
           value={fileUri}

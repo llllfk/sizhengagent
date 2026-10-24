@@ -1,5 +1,5 @@
 -- 「启航」思政智能体 · 核心表结构（PostgreSQL）
--- 最终生产库：PostgreSQL（DATABASE_URL）。本地演示现用 Mock，字段形状与本文件对齐。
+-- 最终生产库：PostgreSQL（DATABASE_URL）。字段形状与本文件对齐。
 -- 在 Coze / 自建 PG 启用后执行；字段可按联调再细化。
 
 -- 1. 学情库

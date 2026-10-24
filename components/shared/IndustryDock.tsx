@@ -341,7 +341,7 @@ export function IndustryDock() {
       {archive.length > 0 ? (
         <section className="space-y-3">
           <p className="text-[10px] tracking-[0.22em] text-[var(--orange)]">
-            本机已沉淀预案 · 演示闭环
+            本机已沉淀预案
           </p>
           <ul className="grid gap-2 md:grid-cols-2">
             {archive.slice(0, 6).map((a) => (

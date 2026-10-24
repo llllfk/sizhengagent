@@ -6,7 +6,7 @@
 - 教师智能工作台 `/workbench`（转接队列 · 互动调度 · 学情看板 · 周报）
 - 师生研讨社区 `/forum`（议题 · 跟帖 · 精华集 · 回灌答疑库）
 
-当前主体已接入 **PostgreSQL**（`/api/health` 返回 `db: "ok"`）：鉴权/用户/学情/答疑/任务等走 `lib/repo/*`（含 `ensurePg` 幂等建表+播种测试账号）；部分互动/短视频演示逻辑仍保留 `lib/mock/*` 兜底。
+当前主体已接入 **PostgreSQL**（`/api/health` 返回 `db: "ok"`）：鉴权/用户/学情/答疑/任务等走 `lib/repo/*`（含 `ensurePg` 幂等建表+播种测试账号）；部分互动/短视频逻辑仍保留 `lib/mock/*` 兜底。
 
 ## 技术栈
 - Next.js 15（App Router）+ TypeScript + Tailwind CSS 4
@@ -17,7 +17,7 @@
 ## 目录结构
 - `app/`：页面（路由组 `(student)` / `(teacher)` / `(community)` + 首页）与 `app/api/*` 全部 API Routes
 - `components/`：`ui/`（基础组件）、`shared/`（业务组件）
-- `lib/`：`db.ts`（pg 客户端）、`repo/`（users/ensure 等 PG 仓储）、`auth/`（session 分端 cookie、password）、`storage.ts`（S3）、`ai.ts`（LLM/内容安全）、`mock/*`（演示兜底）
+- `lib/`：`db.ts`（pg 客户端）、`repo/`（users/ensure 等 PG 仓储）、`auth/`（session 分端 cookie、password）、`storage.ts`（S3）、`ai.ts`（LLM/内容安全）、`mock/*`（本地兜底）
 - `types/index.ts`：领域类型
 - `sql/schema.sql`：PG 表结构
 
@@ -35,7 +35,7 @@
 
 ## 用户偏好与长期约束
 - Node 项目一律使用 pnpm，不用 npm/yarn
-- 不擅自改动数据源切换逻辑（DB 已启用，保持 `lib/repo` 落库现状）；`lib/mock/*` 作为演示兜底保留
+- 不擅自改动数据源切换逻辑（DB 已启用，保持 `lib/repo` 落库现状）；`lib/mock/*` 作为本地兜底保留
 
 ## 常见问题和预防
 - 未配置 `DATABASE_URL` 或 DB 不可用时，`/api/health` 返回 `db: "unconfigured"`，部分业务走 `lib/mock` 兜底

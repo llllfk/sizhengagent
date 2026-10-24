@@ -24,7 +24,7 @@ let seedReady: Promise<boolean> | null = null;
 
 /**
  * 运行时默认只保证表结构存在（幂等、很快）。
- * 演示种子请用 seedPgIfNeeded()，勿挂在登录上。
+ * 种子数据请用 seedPgIfNeeded()，勿挂在登录上。
  */
 export function ensurePg(): Promise<boolean> {
   if (!hasDb()) return Promise.resolve(false);
@@ -46,7 +46,7 @@ async function applySchema() {
 }
 
 /**
- * 空库时一次性灌入演示内容（账号、题库、语料、案例、成果等）。
+ * 空库时一次性灌入种子内容（账号、题库、语料、案例、成果等）。
  * 已有足够数据则立刻返回。供 /api/health 或运维主动触发，不跟登录绑。
  */
 export function seedPgIfNeeded(): Promise<boolean> {
@@ -127,8 +127,8 @@ async function runSeedIfNeeded() {
       weak: ["客舱秩序", "人民至上落地"],
     },
     {
-      id: "demo-student",
-      name: "演示学员",
+      id: "S2026020",
+      name: "钱思齐",
       tag: "creation",
       level: 2,
       weak: ["职业伦理"],
@@ -228,7 +228,7 @@ async function runSeedIfNeeded() {
     ],
   );
 
-  console.log("[pg] seed demo data ok");
+  console.log("[pg] seed data ok");
   return true;
 }
 
@@ -328,7 +328,7 @@ async function ensureInteractiveBank() {
   }
 }
 
-/** 已有库也保证测试账号有画像与可演示任务（幂等） */
+/** 已有库也保证测试账号有画像与分层任务（幂等） */
 async function ensureAccountTasks() {
   const now = new Date().toISOString();
   const profiles = [

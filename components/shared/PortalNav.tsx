@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DbGate } from "@/components/shared/DbGate";
-import { DemoStoryStrip } from "@/components/shared/DemoStoryStrip";
+import { StoryStrip } from "@/components/shared/StoryStrip";
 import { useSession } from "@/components/shared/useSession";
 import { cn } from "@/lib/utils";
 
@@ -161,7 +161,7 @@ export function PortalShell({
         {!pathname.startsWith("/works") &&
         !pathname.startsWith("/workbench") &&
         !pathname.startsWith("/modules") ? (
-          <DemoStoryStrip tone={tone} />
+          <StoryStrip tone={tone} />
         ) : null}
         <DbGate>{children}</DbGate>
       </main>

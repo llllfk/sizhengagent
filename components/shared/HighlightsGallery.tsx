@@ -50,7 +50,7 @@ export function HighlightsGallery() {
   return (
     <div className="space-y-5">
       <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
-        精华来自论坛共识与转接答疑；置顶后可演示「一键回灌」答疑知识库，闭环课中碰撞 → 社区沉淀 → 智能学伴。
+        精华来自论坛共识与转接答疑；置顶后可「一键回灌」答疑知识库，闭环课中碰撞 → 社区沉淀 → 智能学伴。
       </p>
 
       {toast ? (

@@ -18,7 +18,7 @@ function polar(cx: number, cy: number, r: number, angleDeg: number) {
   return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
 }
 
-/** 可动雷达：轴值 0–100，答辩大屏一眼可读 */
+/** 可动雷达：轴值 0–100，大屏一眼可读 */
 export function ProfileRadar({
   axes,
   size = 280,

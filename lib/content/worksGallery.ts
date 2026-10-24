@@ -1,4 +1,4 @@
-/** 成果库演示成片元数据（可被客户端引用；勿在此 import fs） */
+/** 成果库成片元数据（可被客户端引用；勿在此 import fs） */
 export type WorkClip = {
   id: string;
   /** 相对 `4视频/` 的原始文件名（打包源） */

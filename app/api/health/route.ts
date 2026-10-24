@@ -5,7 +5,7 @@ import { ensurePg, seedPgIfNeeded } from "@/lib/repo/ensure";
 /**
  * GET /api/health
  * - 默认：探活 + 确保表结构
- * - ?seed=1：空库时补一次演示种子（运维/首次部署用，勿当登录依赖）
+ * - ?seed=1：空库时补一次种子数据（运维/首次部署用，勿当登录依赖）
  */
 export async function GET(request: NextRequest) {
   let db: "unconfigured" | "ok" | "error" = "unconfigured";

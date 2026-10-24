@@ -295,7 +295,7 @@ export function ModulesAtlas({ isTeacher = false }: { isTeacher?: boolean }) {
         </div>
 
         <p className="relative z-10 mt-5 text-center text-[11px] leading-6 text-[var(--muted)]">
-          答辩叙事：学生提问经①答疑 → 未解进②专题 → 共性进③论坛回灌；④⑤⑥讲透课堂；⑦⑧讲活岗位与成果。
+          课堂闭环：学生提问经①答疑 → 未解进②专题 → 共性进③论坛回灌；④⑤⑥讲透课堂；⑦⑧讲活岗位与成果。
         </p>
       </div>
     </div>

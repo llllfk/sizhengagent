@@ -1,7 +1,7 @@
 /**
  * 数据门面：仅 PostgreSQL（DATABASE_URL）。
  * 未配置数据库时不回落 Mock，由 API 返回 503。
- * 课中五式房间为进程内实时状态（非演示假数据）。
+ * 课中五式房间为进程内实时状态。
  */
 import { hasDb } from "@/lib/db";
 import { ensurePg } from "@/lib/repo/ensure";

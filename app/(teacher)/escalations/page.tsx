@@ -12,7 +12,7 @@ export default function EscalationsPage() {
           转接队列
         </h1>
         <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-          AI 把「真问题」送来，教师一键接受、排期专题答疑——答辩时最能体现人机协同。
+          AI 把「真问题」送来，教师一键接受、排期专题答疑，体现人机协同。
         </p>
       </header>
       <Panel title="待办与流转" hint="每 8 秒自动刷新">

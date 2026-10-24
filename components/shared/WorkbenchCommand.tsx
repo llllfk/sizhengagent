@@ -141,7 +141,7 @@ export function WorkbenchCommand() {
       const json = await res.json();
       if (json.data) setStats(json.data);
     } catch {
-      /* demo keep last */
+      /* keep last snapshot */
     }
   }, []);
 

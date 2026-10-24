@@ -289,7 +289,7 @@ export function CompanionChat() {
               </div>
               <div className="border-t border-dashed border-[var(--line)] pt-3">
                 <p className="mb-2 text-[10px] tracking-[0.2em] text-[var(--muted)]">
-                  M4 双闸门演示
+                  内容安全双闸门
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {SAFETY_DEMO_SAMPLES.map((s) => (

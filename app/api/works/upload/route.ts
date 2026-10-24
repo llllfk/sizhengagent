@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     if (!fileUri) {
       return NextResponse.json(
-        { error: "file_uri 必填（演示可填任意路径）" },
+        { error: "file_uri 必填" },
         { status: 400 },
       );
     }

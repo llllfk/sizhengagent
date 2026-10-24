@@ -45,7 +45,7 @@ export function WeeklyReportPanel() {
             disabled={published}
             onClick={() => setPublished(true)}
           >
-            {published ? "已确认发布（演示）" : "确认发布"}
+            {published ? "已确认发布" : "确认发布"}
           </Button>
         ) : null}
       </div>

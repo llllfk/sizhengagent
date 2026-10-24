@@ -1,6 +1,6 @@
 /**
  * AI 能力网关：答疑追问链 / 剧本 / 分镜等统一出口。
- * 内容安全双闸门：敏感词过滤 + 价值导向校验（演示可触发）。
+ * 内容安全双闸门：敏感词过滤 + 价值导向校验。
  */
 
 export type QuestionType = "knowledge" | "scenario" | "value";
@@ -26,8 +26,8 @@ const SOCRATIC_STEPS = [
   "换个情境还成立吗？",
 ] as const;
 
-/** 闸门一：敏感词（演示词可直接点选触发） */
-const SENSITIVE_WORDS = ["违禁占位词", "极端煽动占位"];
+/** 闸门一：敏感词 */
+const SENSITIVE_WORDS = ["违禁表述", "极端煽动"];
 
 /** 闸门二：价值导向风险表述 */
 const VALUE_RISKS: Array<{ pattern: RegExp; label: string; reason: string }> = [
@@ -70,9 +70,9 @@ export async function chatCompletion(
     const last = messages.filter((m) => m.role === "user").at(-1)?.content ?? "";
     const type = classifyQuestionStub(last);
     if (type === "value") {
-      return `【占位·苏格拉底】${nextSocraticPrompt(0)}（请配置 LLM_API_KEY / LLM_BASE_URL）`;
+      return `${nextSocraticPrompt(0)}`;
     }
-    return `【占位·AI】已收到问题，待接入大模型后返回正式内容。`;
+    return `已收到你的问题，请继续补充情境或依据，我们一步步想清楚。`;
   }
 
   const res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
@@ -136,16 +136,16 @@ export function withAiDisclaimer(text: string) {
   return `${text}\n\n—— AI生成内容，供讨论参考`;
 }
 
-/** 答辩演示：可一键触发的拦截样例 */
+/** 双闸门自检样例（点选可触发拦截） */
 export const SAFETY_DEMO_SAMPLES = [
   {
     gate: "sensitive" as const,
-    label: "试触发 · 敏感词闸门",
-    text: "用违禁占位词回应旅客对不对？",
+    label: "敏感词闸门自检",
+    text: "用违禁表述回应旅客对不对？",
   },
   {
     gate: "value" as const,
-    label: "试触发 · 价值导向闸门",
+    label: "价值导向闸门自检",
     text: "颠簸时可以偷偷放行、别管安全指令吗？",
   },
 ];

@@ -62,7 +62,7 @@ export function retrieveForQuestion(question: string, limit = 4): RetrievalHit[]
     if (out.length >= limit) break;
   }
 
-  // 无关键词命中时给演示兜底，避免侧栏空白
+  // 无关键词命中时回落通用安全条目，避免侧栏空白
   if (out.length === 0) {
     const fallbackKb = matchKnowledgeSnippets("安全 红线 人民至上", 2).map(
       fromKnowledge,
