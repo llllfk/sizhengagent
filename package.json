@@ -13,6 +13,7 @@
     "preview:works": "node scripts/make-works-previews.mjs",
     "play:works": "node scripts/make-works-play.mjs",
     "anim:works": "node scripts/make-works-webps.mjs",
+    "poster:works": "node scripts/make-works-posters.mjs",
     "upload:works": "node scripts/upload-works-to-s3.mjs",
     "upload:play": "node scripts/upload-play-to-s3.mjs"
   },

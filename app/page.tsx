@@ -99,9 +99,9 @@ export default function LoginPage() {
           </p>
           <div className="animate-rise-delay-2 max-w-md space-y-1.5 text-xs leading-6 text-[var(--ink)]/78 md:text-sm md:leading-7">
             <p>在大班额的思政课堂，如何让每一个声音「被听见」？</p>
-            <p>
-              「启航」智能体，以 AI 赋能思政课堂，用启发式答疑启迪，用沉浸式情景推演，陪伴每一位云端之上的你们，上好这堂「大思政课」。
-            </p>
+            <p>「启航」智能体，以 AI 赋能思政课堂，</p>
+            <p>用启发式答疑启迪，用沉浸式情景推演，</p>
+            <p>陪伴每一位云端之上的你们，上好这堂「大思政课」。</p>
           </div>
 
           <ul className="animate-rise-delay-3 grid max-w-md grid-cols-3 gap-2 border-t border-[var(--ink)]/15 pt-4">

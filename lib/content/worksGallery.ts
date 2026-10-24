@@ -118,8 +118,8 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "qihang-blue",
     file: "5.启航逐梦蓝天.mp4",
-    title: "启航逐梦蓝天",
-    award: "品牌成片",
+    title: "启航·筑梦蓝天",
+    award: "校本专题·实践作品展播",
     tag: "空乘梦想",
     size: "sm",
     ring: "outer",
