@@ -1,6 +1,6 @@
 /**
  * 扣子智能体对话（非流式）：发起 → 轮询 → 取 answer。
- * 需环境变量 COZE_API_TOKEN + COZE_BOT_ID。
+ * 需环境变量 AGENT_API_TOKEN + AGENT_BOT_ID（勿用 COZE_ 前缀，平台不允许）。
  */
 
 const COZE_API = "https://api.coze.cn";
@@ -12,7 +12,7 @@ export type CozeChatResult = {
 };
 
 export function isCozeChatConfigured(): boolean {
-  return Boolean(process.env.COZE_API_TOKEN && process.env.COZE_BOT_ID);
+  return Boolean(process.env.AGENT_API_TOKEN && process.env.AGENT_BOT_ID);
 }
 
 function sleep(ms: number) {
@@ -20,8 +20,8 @@ function sleep(ms: number) {
 }
 
 async function cozeFetch(path: string, init?: RequestInit): Promise<Response> {
-  const token = process.env.COZE_API_TOKEN;
-  if (!token) throw new Error("未配置 COZE_API_TOKEN");
+  const token = process.env.AGENT_API_TOKEN;
+  if (!token) throw new Error("未配置 AGENT_API_TOKEN");
   return fetch(`${COZE_API}${path}`, {
     ...init,
     headers: {
@@ -43,8 +43,8 @@ export async function chatWithCozeBot(input: {
   userId: string;
   conversationId?: string | null;
 }): Promise<CozeChatResult> {
-  const botId = process.env.COZE_BOT_ID;
-  if (!botId) throw new Error("未配置 COZE_BOT_ID");
+  const botId = process.env.AGENT_BOT_ID;
+  if (!botId) throw new Error("未配置 AGENT_BOT_ID");
 
   const qs = input.conversationId
     ? `?conversation_id=${encodeURIComponent(input.conversationId)}`

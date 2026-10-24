@@ -9,27 +9,29 @@ import { createReadStream } from "fs";
 import { stat } from "fs/promises";
 
 /**
- * Coze 对象存储（S3 兼容）。
+ * 对象存储（S3 兼容）。
+ * 环境变量：STORAGE_URL / STORAGE_BUCKET / STORAGE_AK / STORAGE_SK
+ * （扣子编程禁止 COZE 开头的变量名）
  * 约定：URI/Key 永久入库，播放 URL 按需签名（默认 7 天）。
  */
 export const s3Client = new S3Client({
-  endpoint: process.env.COZE_STORAGE_URL,
+  endpoint: process.env.STORAGE_URL,
   region: "us-east-1",
   forcePathStyle: true,
   credentials: {
-    accessKeyId: process.env.COZE_STORAGE_AK || "",
-    secretAccessKey: process.env.COZE_STORAGE_SK || "",
+    accessKeyId: process.env.STORAGE_AK || "",
+    secretAccessKey: process.env.STORAGE_SK || "",
   },
 });
 
-export const BUCKET_NAME = process.env.COZE_STORAGE_BUCKET || "";
+export const BUCKET_NAME = process.env.STORAGE_BUCKET || "";
 
 export function hasObjectStorage(): boolean {
   return Boolean(
-    process.env.COZE_STORAGE_URL &&
-      process.env.COZE_STORAGE_BUCKET &&
-      process.env.COZE_STORAGE_AK &&
-      process.env.COZE_STORAGE_SK,
+    process.env.STORAGE_URL &&
+      process.env.STORAGE_BUCKET &&
+      process.env.STORAGE_AK &&
+      process.env.STORAGE_SK,
   );
 }
 
@@ -63,7 +65,7 @@ export async function uploadFileToStorage(
   contentType = "video/mp4",
 ) {
   if (!hasObjectStorage()) {
-    throw new Error("未配置 COZE_STORAGE_*，无法上传对象存储");
+    throw new Error("未配置 STORAGE_*，无法上传对象存储");
   }
   const st = await stat(filePath);
   await s3Client.send(
@@ -84,7 +86,7 @@ export async function getSignedPlayUrl(
   expiresInSec = 60 * 60 * 24 * 7,
 ): Promise<string> {
   if (!hasObjectStorage()) {
-    throw new Error("未配置 COZE_STORAGE_*");
+    throw new Error("未配置 STORAGE_*");
   }
   return getSignedUrl(
     s3Client,

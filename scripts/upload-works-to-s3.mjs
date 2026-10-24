@@ -1,6 +1,6 @@
 /**
  * 把上级 `4视频/` 成片上传到 Coze S3（works/gallery/{id}.mp4）
- * 需要 .env.local 已填写 COZE_STORAGE_URL / BUCKET / AK / SK
+ * 需要 .env.local 已填写 STORAGE_URL / BUCKET / AK / SK
  *
  * 用法：node scripts/upload-works-to-s3.mjs
  */
@@ -59,14 +59,14 @@ function loadEnvLocal() {
 
 loadEnvLocal();
 
-const endpoint = process.env.COZE_STORAGE_URL || "";
-const bucket = process.env.COZE_STORAGE_BUCKET || "";
-const ak = process.env.COZE_STORAGE_AK || "";
-const sk = process.env.COZE_STORAGE_SK || "";
+const endpoint = process.env.STORAGE_URL || "";
+const bucket = process.env.STORAGE_BUCKET || "";
+const ak = process.env.STORAGE_AK || "";
+const sk = process.env.STORAGE_SK || "";
 
 if (!endpoint || !bucket || !ak || !sk) {
   console.error(
-    "缺少 COZE_STORAGE_*。请在扣子编程环境变量或 .env.local 填入 URL/BUCKET/AK/SK 后再跑。",
+    "缺少 STORAGE_*。请在扣子编程环境变量或 .env.local 填入 URL/BUCKET/AK/SK 后再跑。",
   );
   process.exit(1);
 }
