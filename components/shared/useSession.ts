@@ -14,6 +14,9 @@ export type ClientSession = {
   role: "teacher" | "student";
   display_name: string;
   student_id: string | null;
+  class_id?: string | null;
+  class_name?: string | null;
+  class_code?: string | null;
 };
 
 function portalFromPath(path: string): TabPortal | null {
@@ -23,7 +26,8 @@ function portalFromPath(path: string): TabPortal | null {
     path.startsWith("/interactive-control") ||
     path.startsWith("/analytics") ||
     path.startsWith("/weekly-report") ||
-    path.startsWith("/accounts")
+    path.startsWith("/accounts") ||
+    path.startsWith("/classes")
   ) {
     return "teacher";
   }

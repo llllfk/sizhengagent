@@ -249,3 +249,14 @@ export async function listLearningIssues(
   await requirePg();
   return pg.pgListLearningIssues(studentId, status);
 }
+
+export {
+  listClasses,
+  getClass,
+  listClassMembers,
+  createClass,
+  updateClass,
+  deleteClass,
+  setClassMembers,
+  assignStudentClass,
+} from "@/lib/repo/classes";

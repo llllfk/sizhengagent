@@ -25,6 +25,7 @@ const SAFE_PREFIXES = [
   "/analytics",
   "/weekly-report",
   "/accounts",
+  "/classes",
   "/highlights",
   "/modules",
 ];

@@ -78,13 +78,28 @@ export function PortalShell({
           <div className="flex shrink-0 items-center gap-2">
             {user ? (
               <>
-                <span className="hidden text-[11px] text-[var(--muted)] sm:inline">
-                  {user.display_name}
-                  <span className="mx-1 text-[var(--line)]">·</span>
-                  {user.role === "teacher"
-                    ? "教师"
-                    : user.student_id || user.username}
-                </span>
+                <div className="flex min-w-0 max-w-[58vw] items-center gap-1.5 sm:max-w-[360px]">
+                  <span className="truncate text-[12px] text-[var(--ink)]">
+                    {user.display_name}
+                  </span>
+                  {user.role === "student" ? (
+                    <span
+                      title={user.class_name || "未分班"}
+                      className="inline-flex max-w-[28vw] shrink-0 items-center truncate rounded-full border border-[var(--orange)]/35 bg-[var(--orange-fog)] px-2 py-0.5 text-[10px] tracking-wide text-[var(--orange-deep)] sm:max-w-[160px]"
+                    >
+                      {user.class_name || "未分班"}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 text-[10px] tracking-wide text-[var(--orange-deep)]">
+                      教师
+                    </span>
+                  )}
+                  <span className="truncate text-[10px] text-[var(--muted)]">
+                    {user.role === "teacher"
+                      ? user.username
+                      : user.student_id || user.username}
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => {

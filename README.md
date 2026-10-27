@@ -42,7 +42,7 @@ npm run dev
 | 学生 | `S2026001` | 林晓航 |
 | 学生 | `S2026008` | 陈思远 |
 
-教师工作台 → **账号管理** 可增删改账号。
+教师工作台 → **班级管理** 可增删改班级并给学生分班；**账号管理** 可增删改账号。
 
 ## 关键 API（骨架）
 
@@ -53,6 +53,7 @@ npm run dev
 - `GET /api/interactive/quiz/paper` · `POST /api/interactive/quiz/submit`
 - `POST /api/interactive/cabin` · `GET /api/interactive/wordcard` · `POST /api/interactive/debate`
 - `GET /api/student/profile` · `POST /api/task/assign`
+- `GET|POST|PATCH|DELETE /api/teacher/classes` · `GET|POST|PATCH|DELETE /api/teacher/accounts`
 - `POST /api/video/storyboard` · `POST /api/works/upload`
 - `GET|POST /api/forum/topics` · `GET|POST /api/forum/replies`
 - `GET|POST /api/highlights`（pin / reflux / promote）

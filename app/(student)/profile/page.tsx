@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ChangePasswordForm } from "@/components/shared/ChangePasswordForm";
 import { Panel } from "@/components/ui/Card";
 import {
   ProfileRadar,
@@ -43,6 +44,9 @@ type Profile = {
   type_tag: string;
   cognition_level: number;
   weak_points: string[];
+  class_id?: string | null;
+  class_name?: string | null;
+  class_code?: string | null;
   open_issues?: LearningIssue[];
   open_issue_count?: number;
   activity?: Activity;
@@ -103,6 +107,13 @@ export default function ProfilePage() {
                     {profile.name}
                   </h2>
                   <p className="mt-2 text-sm text-[var(--muted)]">
+                    {profile.class_name ? (
+                      <>
+                        {profile.class_name}
+                        {profile.class_code ? ` · ${profile.class_code}` : ""}
+                        {" · "}
+                      </>
+                    ) : null}
                     认知起点 L{profile.cognition_level} ·{" "}
                     <span className="text-[var(--orange-deep)]">
                       {typeLabel[profile.type_tag] ?? profile.type_tag}
@@ -168,6 +179,10 @@ export default function ProfilePage() {
               />
             </div>
           </div>
+
+          <Panel title="账号安全" hint="修改登录密码 · 需验证当前密码">
+            <ChangePasswordForm />
+          </Panel>
 
           <Panel title="问题清单" hint="课中闯关错题 / 答疑转接 · 实时库">
             {(profile.open_issues?.length ?? 0) === 0 ? (

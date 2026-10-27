@@ -8,6 +8,7 @@ const items = [
   { href: "/works", label: "成果库" },
   { href: "/analytics", label: "学情看板" },
   { href: "/weekly-report", label: "学情周报" },
+  { href: "/classes", label: "班级管理" },
   { href: "/accounts", label: "账号管理" },
 ];
 

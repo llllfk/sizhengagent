@@ -215,6 +215,12 @@ export function CompanionChat() {
           {user ? (
             <span className="rounded-sm border border-[var(--line)] bg-white px-2 py-0.5 text-[var(--muted)]">
               {user.display_name}
+              {user.class_name ? (
+                <>
+                  <span className="mx-1 text-[var(--line)]">·</span>
+                  {user.class_name}
+                </>
+              ) : null}
               <span className="mx-1 text-[var(--line)]">·</span>
               {user.student_id || user.username}
             </span>

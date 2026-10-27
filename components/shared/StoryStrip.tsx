@@ -28,6 +28,7 @@ const teacherStory: StoryStep[] = [
   { href: "/works", label: "成果库", tip: "成片墙" },
   { href: "/analytics", label: "看板", tip: "学情" },
   { href: "/weekly-report", label: "周报", tip: "建议草稿" },
+  { href: "/classes", label: "班级", tip: "班级管理" },
   { href: "/accounts", label: "账号", tip: "账号管理" },
 ];
 

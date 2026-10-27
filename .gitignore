@@ -27,6 +27,8 @@ next-env.d.ts
 
 # local extract / temp
 _extracted/
+_kb_upload/
+_tmp*
 tmp/
 .temp_*/
 .temp_*

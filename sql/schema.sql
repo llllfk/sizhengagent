@@ -242,3 +242,19 @@ CREATE TABLE IF NOT EXISTS learning_issue (
 
 CREATE INDEX IF NOT EXISTS idx_learning_issue_student ON learning_issue (student_id, status);
 CREATE INDEX IF NOT EXISTS idx_learning_issue_open ON learning_issue (status, created_at DESC);
+
+-- 12. 班级管理（学生归属班级；教师 CRUD）
+CREATE TABLE IF NOT EXISTS class_group (
+  id BIGSERIAL PRIMARY KEY,
+  class_id VARCHAR(64) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(32) NOT NULL UNIQUE,
+  remark TEXT DEFAULT '',
+  created_by VARCHAR(64),
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE student_profile ADD COLUMN IF NOT EXISTS class_id VARCHAR(64);
+CREATE INDEX IF NOT EXISTS idx_class_group_code ON class_group (code);
+CREATE INDEX IF NOT EXISTS idx_student_profile_class ON student_profile (class_id);

@@ -17,22 +17,6 @@ const portals: Array<{
   { id: "community", label: "研讨社区", hint: "议题 · 精华" },
 ];
 
-const DEMO_ACCOUNTS = [
-  { portal: "teacher" as const, user: "T001", pass: "123456", name: "李老师" },
-  {
-    portal: "student" as const,
-    user: "S2026001",
-    pass: "123456",
-    name: "林晓航",
-  },
-  {
-    portal: "student" as const,
-    user: "S2026008",
-    pass: "123456",
-    name: "陈思远",
-  },
-];
-
 const SAFE_NEXT = [
   "/companion",
   "/workbench",
@@ -49,6 +33,7 @@ const SAFE_NEXT = [
   "/analytics",
   "/weekly-report",
   "/accounts",
+  "/classes",
   "/highlights",
 ];
 
@@ -61,8 +46,8 @@ function safeNext(raw: string | null) {
 export function LoginForm() {
   const searchParams = useSearchParams();
   const [portal, setPortal] = useState<Portal>("student");
-  const [account, setAccount] = useState("S2026001");
-  const [password, setPassword] = useState("123456");
+  const [account, setAccount] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -70,11 +55,6 @@ export function LoginForm() {
     const p = searchParams.get("portal");
     if (p === "student" || p === "teacher" || p === "community") {
       setPortal(p);
-      if (p === "teacher") {
-        setAccount("T001");
-      } else if (p === "student") {
-        setAccount("S2026001");
-      }
     }
   }, [searchParams]);
 
@@ -115,13 +95,6 @@ export function LoginForm() {
     }
   }
 
-  function fillDemo(row: (typeof DEMO_ACCOUNTS)[number]) {
-    setPortal(row.portal === "teacher" ? "teacher" : "student");
-    setAccount(row.user);
-    setPassword(row.pass);
-    setError("");
-  }
-
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid grid-cols-3 gap-2">
@@ -149,7 +122,7 @@ export function LoginForm() {
           value={account}
           onChange={(e) => setAccount(e.target.value)}
           className="w-full rounded-sm border border-[var(--line)] bg-[var(--paper)] px-3 py-2.5 text-sm text-[var(--ink)] outline-none transition placeholder:text-[var(--muted)]/50 focus:border-[var(--orange)] focus:shadow-[0_0_0_3px_rgba(232,120,47,0.12)]"
-          placeholder="工号 / 学号"
+          placeholder="请输入账号"
           autoComplete="username"
         />
       </label>
@@ -192,28 +165,6 @@ export function LoginForm() {
           )}
         </span>
       </button>
-
-      <div className="space-y-2 border-t border-[var(--line)] pt-3">
-        <p className="text-[10px] tracking-[0.2em] text-[var(--muted)]">
-          测试账号（密码均为 123456）
-        </p>
-        <div className="flex flex-col gap-1.5">
-          {DEMO_ACCOUNTS.map((d) => (
-            <button
-              key={d.user}
-              type="button"
-              onClick={() => fillDemo(d)}
-              className="rounded-sm border border-dashed border-[var(--line)] bg-white px-2.5 py-1.5 text-left text-[11px] text-[var(--ink)] transition hover:border-[var(--orange)] hover:bg-[var(--orange-fog)]"
-            >
-              <span className="text-[var(--orange-deep)]">
-                {d.portal === "teacher" ? "教师" : "学生"}
-              </span>
-              {" · "}
-              {d.name}（{d.user}）
-            </button>
-          ))}
-        </div>
-      </div>
     </form>
   );
 }

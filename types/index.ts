@@ -16,6 +16,20 @@ export interface StudentProfile {
   type_tag: StudentTypeTag;
   cognition_level: number;
   weak_points: string[];
+  class_id?: string | null;
+  class_name?: string | null;
+  class_code?: string | null;
+  updated_at: string;
+}
+
+export interface ClassGroup {
+  class_id: string;
+  name: string;
+  code: string;
+  remark: string;
+  created_by?: string | null;
+  student_count: number;
+  created_at: string;
   updated_at: string;
 }
 

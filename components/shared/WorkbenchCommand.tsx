@@ -52,6 +52,8 @@ const VIEWS = [
   { href: "/escalations", title: "转接队列", tag: "讲深" },
   { href: "/interactive-control", title: "互动调度", tag: "讲透" },
   { href: "/analytics", title: "学情看板", tag: "画像" },
+  { href: "/classes", title: "班级管理", tag: "分班" },
+  { href: "/accounts", title: "账号管理", tag: "人员" },
 ];
 
 const categoryLabel: Record<string, string> = {

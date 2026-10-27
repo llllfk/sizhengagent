@@ -11,7 +11,8 @@ import {
   galleryObjectKey,
   WORKS_GALLERY,
 } from "@/lib/content/worksGallery";
-import { ensureTestUsers } from "@/lib/repo/users";
+import { ensureClassSeed } from "@/lib/repo/classes";
+import { ensureTeacherAccount } from "@/lib/repo/users";
 import {
   pgUpsertCabinCase,
   pgUpsertInteractiveContent,
@@ -65,7 +66,8 @@ async function runSeedIfNeeded() {
   const ok = await ensurePg();
   if (!ok) return false;
 
-  await ensureTestUsers();
+  await ensureTeacherAccount();
+  await ensureClassSeed();
   await ensureAccountTasks();
 
   const stock = await query<{

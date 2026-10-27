@@ -42,14 +42,26 @@ export async function pgListStudents(): Promise<StudentProfile[]> {
     type_tag: StudentTypeTag;
     cognition_level: number;
     weak_points: unknown;
+    class_id: string | null;
+    class_name: string | null;
+    class_code: string | null;
     updated_at: Date;
-  }>("select * from student_profile order by student_id");
+  }>(
+    `select s.student_id, s.name, s.type_tag, s.cognition_level, s.weak_points,
+            s.class_id, s.updated_at, c.name as class_name, c.code as class_code
+     from student_profile s
+     left join class_group c on c.class_id = s.class_id
+     order by s.student_id`,
+  );
   return r.rows.map((row) => ({
     student_id: row.student_id,
     name: row.name,
     type_tag: row.type_tag,
     cognition_level: row.cognition_level,
     weak_points: asStringArray(row.weak_points),
+    class_id: row.class_id,
+    class_name: row.class_name,
+    class_code: row.class_code,
     updated_at: new Date(row.updated_at).toISOString(),
   }));
 }

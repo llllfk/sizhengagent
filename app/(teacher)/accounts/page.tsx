@@ -12,10 +12,10 @@ export default function AccountsPage() {
           账号管理
         </h1>
         <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-          管理教师与学生登录账号；新建学生时会同步学情画像。测试账号可在登录页一键填入。
+          可修改本人与任意账号的名称、登录账号；新建学生时可直接分班。班级增删改请走「班级管理」。
         </p>
       </header>
-      <Panel title="用户列表" hint="需教师身份登录后操作">
+      <Panel title="账号管理" hint="需教师身份登录后操作">
         <AccountManager />
       </Panel>
     </div>
