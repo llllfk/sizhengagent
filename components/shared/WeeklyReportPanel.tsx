@@ -35,7 +35,7 @@ export function WeeklyReportPanel() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={busy} onClick={() => void generate()}>
+        <Button type="button" loading={busy} onClick={() => void generate()}>
           {busy ? "生成中…" : report ? "刷新周报草稿" : "生成周报草稿"}
         </Button>
         {report ? (

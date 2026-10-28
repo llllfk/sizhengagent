@@ -9,12 +9,14 @@ import {
 } from "@/components/shared/InteractiveKickoff";
 import { CABIN_CASES_ASSEMBLY } from "@/lib/content/cabinCasesAssembly";
 import { cn } from "@/lib/utils";
+import { TYPE_LABEL, TYPE_TAGS, typeDistTotal, type TypeDist } from "@/lib/content/typeTags";
 
 type Stats = {
   pending_escalations: number;
   open_sessions: number;
   students: number;
-  type_dist: { expression: number; creation: number; experience: number };
+  type_dist: TypeDist;
+  untyped?: number;
 };
 
 type Mode = "cabin" | "script" | "wordcard" | "quiz" | "debate";
@@ -236,11 +238,7 @@ export function WorkbenchCommand() {
     return showcase[caseIdx % showcase.length] ?? showcase[0];
   }, [showcase, caseIdx]);
 
-  const typeTotal = stats
-    ? stats.type_dist.expression +
-      stats.type_dist.creation +
-      stats.type_dist.experience
-    : 0;
+  const typeTotal = stats ? typeDistTotal(stats.type_dist) : 0;
 
   async function start(mode: Mode, caseId?: string) {
     setLoading(true);
@@ -347,7 +345,7 @@ export function WorkbenchCommand() {
               <StatBlock
                 label="画像学员"
                 value={stats.students}
-                hint="学情库覆盖"
+                hint={`学情库 · 待生成 ${stats.untyped ?? 0}`}
                 delay={160}
               />
               <div className="rounded-sm border border-[var(--line)] bg-white/90 p-4">
@@ -355,13 +353,15 @@ export function WorkbenchCommand() {
                   思维分型
                 </p>
                 <div className="mt-3 space-y-2.5">
-                  {(
-                    [
-                      ["表达型", stats.type_dist.expression],
-                      ["创作型", stats.type_dist.creation],
-                      ["体验型", stats.type_dist.experience],
-                    ] as const
-                  ).map(([name, v]) => {
+                  <div className="mb-1 flex justify-between text-[11px]">
+                    <span className="text-[var(--ink)]">{TYPE_LABEL.untyped}</span>
+                    <span className="tabular-nums text-[var(--orange)]">
+                      {stats.untyped ?? 0}
+                    </span>
+                  </div>
+                  {TYPE_TAGS.map((k) => {
+                    const name = TYPE_LABEL[k];
+                    const v = stats.type_dist[k] ?? 0;
                     const pct = typeTotal ? Math.round((v / typeTotal) * 100) : 0;
                     return (
                       <div key={name}>
@@ -456,10 +456,10 @@ export function WorkbenchCommand() {
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={loading}
+                  loading={loading}
                   onClick={() => void endLive()}
                 >
-                  结束本场
+                  {loading ? "结束中…" : "结束本场"}
                 </Button>
                 <Link
                   href="/interactive-control"
@@ -514,10 +514,10 @@ export function WorkbenchCommand() {
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Button
                     type="button"
-                    disabled={loading}
+                    loading={loading}
                     onClick={() => void start("cabin", featured.case_id)}
                   >
-                    用此案例开场
+                    {loading ? "开场中…" : "用此案例开场"}
                   </Button>
                   <Link
                     href="/industry"

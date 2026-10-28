@@ -18,7 +18,7 @@ const display = Noto_Serif_SC({
 });
 
 const body = Noto_Sans_SC({
-  weight: ["400", "500", "600"],
+  weight: ["500", "600", "700"],
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",

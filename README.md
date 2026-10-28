@@ -20,6 +20,7 @@
 - **数据库**只存成片元数据（表 `work_gallery` / Key），**不存 mp4 二进制**。
 - 播放走对象存储：环境变量 `STORAGE_URL` / `STORAGE_BUCKET` / `STORAGE_AK` / `STORAGE_SK`（扣子编程禁止 `COZE_` 前缀；本地写在 `.env.local`）。
 - **学伴答疑**走扣子智能体：`AGENT_API_TOKEN` + `AGENT_BOT_ID`（启航学伴 `7699859793662132264`，已挂答疑库/客舱案例库）；未配置时回退本地苏格拉底追问。
+- **短视频工坊**走 `WORKSHOP_BOT_ID`（启航编导 `7701572585809199158`）；未配则回退学伴，再不行用课堂编导稿。
 - **上传方式二选一**：扣子「对象存储」控制台直传 `4视频` 原文件名（推荐，与现网一致）；或本地 `npm run upload:works`。
 - 本地无 S3 时才回落读本机 `4视频/` 或 `npm run pack:works`。
 

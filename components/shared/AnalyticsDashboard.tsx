@@ -6,6 +6,12 @@ import {
   TypeBeaconBoard,
   buildClassRadarAxes,
 } from "@/components/shared/ProfileRadar";
+import { TypeGuide } from "@/components/shared/TypeGuide";
+import {
+  TYPE_LABEL,
+  TYPE_TAGS,
+  type TypeDist,
+} from "@/lib/content/typeTags";
 
 type StudentRow = {
   student_id?: string;
@@ -37,7 +43,8 @@ type Analytics = {
     quiz_issues_7d: number;
   };
   student_count: number;
-  type_dist: { expression: number; creation: number; experience: number };
+  untyped?: number;
+  type_dist: TypeDist;
   task_status: { todo: number; doing: number; done: number };
   task_completion_rate: number;
   works_count: number;
@@ -45,11 +52,7 @@ type Analytics = {
   student_rows: StudentRow[];
 };
 
-const typeLabel: Record<string, string> = {
-  expression: "表达型",
-  creation: "创作型",
-  experience: "体验型",
-};
+const typeLabel = TYPE_LABEL as Record<string, string>;
 
 function Bar({
   label,
@@ -82,20 +85,31 @@ function Bar({
 export function AnalyticsDashboard() {
   const [data, setData] = useState<Analytics | null>(null);
 
-  useEffect(() => {
-    void fetch("/api/teacher/analytics")
+  const load = () =>
+    fetch("/api/teacher/analytics")
       .then((r) => r.json())
       .then((j) => setData(j.data));
+
+  useEffect(() => {
+    void load();
   }, []);
+
+  async function setType(studentId: string, type_tag: string) {
+    await fetch("/api/teacher/students", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ student_id: studentId, type_tag }),
+    });
+    await load();
+  }
 
   const dominant = useMemo(() => {
     if (!data) return "creation";
     const d = data.type_dist;
-    const entries: Array<[string, number]> = [
-      ["expression", d.expression],
-      ["creation", d.creation],
-      ["experience", d.experience],
-    ];
+    const entries: Array<[string, number]> = TYPE_TAGS.map((k) => [
+      k,
+      d[k] ?? 0,
+    ]);
     return entries.sort((a, b) => b[1] - a[1])[0]![0];
   }, [data]);
 
@@ -143,6 +157,7 @@ export function AnalyticsDashboard() {
             <div className="flex flex-wrap gap-3 text-center">
               {[
                 { k: "学员", v: data.student_count },
+                { k: "待生成", v: data.untyped ?? 0 },
                 { k: "7日答疑", v: data.week?.qa_sessions_7d ?? "—" },
                 { k: "7日转接", v: data.week?.escalations_7d ?? "—" },
                 {
@@ -168,6 +183,8 @@ export function AnalyticsDashboard() {
             counts={data.type_dist}
             mode="class"
           />
+
+          <TypeGuide highlight={dominant} />
 
           <div className="grid items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <ProfileRadar
@@ -236,9 +253,24 @@ export function AnalyticsDashboard() {
                 <p className="font-display text-base text-[var(--ink)]">
                   {s.name}
                 </p>
-                <span className="text-[10px] tracking-wider text-[var(--orange)]">
-                  {typeLabel[s.type_tag] ?? s.type_tag}
-                </span>
+                {s.student_id ? (
+                  <select
+                    className="rounded-sm border border-[var(--line)] bg-white px-1.5 py-0.5 text-[10px] text-[var(--orange-deep)] outline-none"
+                    value={s.type_tag}
+                    onChange={(e) => void setType(s.student_id!, e.target.value)}
+                  >
+                    <option value="untyped">{TYPE_LABEL.untyped}</option>
+                    {TYPE_TAGS.map((k) => (
+                      <option key={k} value={k}>
+                        {TYPE_LABEL[k]}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-[10px] tracking-wider text-[var(--orange)]">
+                    {typeLabel[s.type_tag] ?? s.type_tag}
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-[11px] text-[var(--muted)]">
                 L{s.cognition_level} · 完成 {s.task_done} 项

@@ -1,6 +1,7 @@
 /**
  * 扣子智能体对话（非流式）：发起 → 轮询 → 取 answer。
- * 需环境变量 AGENT_API_TOKEN + AGENT_BOT_ID（勿用 COZE_ 前缀，平台不允许）。
+ * 需环境变量 AGENT_API_TOKEN + AGENT_BOT_ID（学伴）。
+ * 短视频工坊另用 WORKSHOP_BOT_ID（启航编导）。勿用 COZE_ 前缀。
  */
 
 const COZE_API = "https://api.coze.cn";
@@ -13,6 +14,14 @@ export type CozeChatResult = {
 
 export function isCozeChatConfigured(): boolean {
   return Boolean(process.env.AGENT_API_TOKEN && process.env.AGENT_BOT_ID);
+}
+
+export function isWorkshopBotConfigured(): boolean {
+  return Boolean(process.env.AGENT_API_TOKEN && workshopBotId());
+}
+
+function workshopBotId(): string {
+  return (process.env.WORKSHOP_BOT_ID || process.env.AGENT_BOT_ID || "").trim();
 }
 
 function sleep(ms: number) {
@@ -42,8 +51,12 @@ export async function chatWithCozeBot(input: {
   message: string;
   userId: string;
   conversationId?: string | null;
+  /** 工坊长文生成可加大轮询次数（默认 12×800ms） */
+  maxPolls?: number;
+  /** 不传则走启航学伴 AGENT_BOT_ID */
+  botId?: string;
 }): Promise<CozeChatResult> {
-  const botId = process.env.AGENT_BOT_ID;
+  const botId = (input.botId || process.env.AGENT_BOT_ID || "").trim();
   if (!botId) throw new Error("未配置 AGENT_BOT_ID");
 
   const qs = input.conversationId
@@ -56,6 +69,7 @@ export async function chatWithCozeBot(input: {
       bot_id: botId,
       user_id: input.userId,
       stream: false,
+      // 扣子要求 auto_save_history=false 时必须带 stream；false 会被当成未传。
       auto_save_history: true,
       additional_messages: [
         {
@@ -93,17 +107,24 @@ export async function chatWithCozeBot(input: {
   ]);
 
   let status = startJson.data.status ?? "in_progress";
-  for (let i = 0; i < 45; i++) {
+  // 默认约 20×900ms，覆盖知识库召回偏慢；仍受路由 maxDuration 约束
+  const maxPolls = input.maxPolls ?? 20;
+  for (let i = 0; i < maxPolls; i++) {
     if (terminal.has(status)) break;
-    await sleep(1200);
+    await sleep(900);
     const retRes = await cozeFetch(
       `/v3/chat/retrieve?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`,
     );
-    const retJson = (await retRes.json()) as {
+    let retJson: {
       code: number;
       msg?: string;
       data?: { status?: string; last_error?: { msg?: string } };
     };
+    try {
+      retJson = (await retRes.json()) as typeof retJson;
+    } catch {
+      throw new Error("Coze 轮询响应异常，请稍后重试");
+    }
     if (retJson.code !== 0) {
       throw new Error(retJson.msg || `Coze 轮询失败 code=${retJson.code}`);
     }

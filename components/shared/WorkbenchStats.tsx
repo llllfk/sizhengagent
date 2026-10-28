@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { TYPE_LABEL, TYPE_TAGS, type TypeDist } from "@/lib/content/typeTags";
 
 type Stats = {
   pending_escalations: number;
   open_sessions: number;
   students: number;
-  type_dist: { expression: number; creation: number; experience: number };
+  type_dist: TypeDist;
+  untyped?: number;
 };
 
 export function WorkbenchStats() {
@@ -45,7 +47,7 @@ export function WorkbenchStats() {
     {
       label: "画像学员",
       value: stats.students,
-      hint: "学情库",
+      hint: `学情库 · 待生成 ${stats.untyped ?? 0}`,
       pulse: false,
     },
   ];
@@ -94,23 +96,17 @@ export function WorkbenchStats() {
         </div>
         <div className="flex flex-wrap gap-5">
           <span>
-            表达型{" "}
-            <strong className="text-[var(--orange)]">
-              {stats.type_dist.expression}
-            </strong>
+            {TYPE_LABEL.untyped}{" "}
+            <strong className="text-[var(--orange)]">{stats.untyped ?? 0}</strong>
           </span>
-          <span>
-            创作型{" "}
-            <strong className="text-[var(--orange)]">
-              {stats.type_dist.creation}
-            </strong>
-          </span>
-          <span>
-            体验型{" "}
-            <strong className="text-[var(--orange)]">
-              {stats.type_dist.experience}
-            </strong>
-          </span>
+          {TYPE_TAGS.map((k) => (
+            <span key={k}>
+              {TYPE_LABEL[k]}{" "}
+              <strong className="text-[var(--orange)]">
+                {stats.type_dist[k] ?? 0}
+              </strong>
+            </span>
+          ))}
         </div>
       </div>
     </div>

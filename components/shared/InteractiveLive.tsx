@@ -69,6 +69,7 @@ export function InteractiveLive() {
   const [debateSide, setDebateSide] = useState<"pro" | "con">("pro");
   const [debateText, setDebateText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [genBusy, setGenBusy] = useState(false);
   const [msg, setMsg] = useState("");
 
   const refresh = useCallback(async () => {
@@ -128,6 +129,8 @@ export function InteractiveLive() {
   async function genScript() {
     if (!room) return;
     setBusy(true);
+    setGenBusy(true);
+    setMsg("");
     try {
       const res = await fetch("/api/interactive/script/generate", {
         method: "POST",
@@ -135,6 +138,10 @@ export function InteractiveLive() {
         body: JSON.stringify({ room_id: room.room_id }),
       });
       const json = await res.json();
+      if (res.status === 422 && json.safety) {
+        setMsg(json.safety.reason || json.error || "内容已拦截");
+        return;
+      }
       if (!res.ok) throw new Error(json.error || "生成失败");
       setScriptOut(json.data.body);
       await refresh();
@@ -142,6 +149,7 @@ export function InteractiveLive() {
       setMsg(e instanceof Error ? e.message : "失败");
     } finally {
       setBusy(false);
+      setGenBusy(false);
     }
   }
 
@@ -310,16 +318,16 @@ export function InteractiveLive() {
               placeholder="写下你的一句…"
               disabled={busy}
             />
-            <Button type="button" onClick={() => void sendLine()} disabled={busy}>
-              接龙
+            <Button type="button" onClick={() => void sendLine()} loading={busy}>
+              {busy ? "提交中…" : "接龙"}
             </Button>
             <Button
               type="button"
               variant="ghost"
               onClick={() => void genScript()}
-              disabled={busy}
+              loading={genBusy || busy}
             >
-              AI成剧
+              {genBusy || busy ? "成剧中…" : "AI成剧"}
             </Button>
           </div>
           {scriptOut ? (
@@ -361,8 +369,8 @@ export function InteractiveLive() {
               </div>
             </div>
           ))}
-          <Button type="button" onClick={() => void submitQuiz()} disabled={busy}>
-            提交闯关
+          <Button type="button" onClick={() => void submitQuiz()} loading={busy}>
+            {busy ? "提交中…" : "提交闯关"}
           </Button>
           {quizResult ? (
             <div className="rounded-sm border border-[var(--orange)]/30 bg-[var(--orange-fog)] p-4 text-sm">
@@ -459,8 +467,8 @@ export function InteractiveLive() {
             onChange={(e) => setCabinText(e.target.value)}
             disabled={busy}
           />
-          <Button type="button" onClick={() => void submitCabin()} disabled={busy}>
-            提交扮演 · 获取点评
+          <Button type="button" onClick={() => void submitCabin()} loading={busy}>
+            {busy ? "点评生成中…" : "提交扮演 · 获取点评"}
           </Button>
 
           {cabinFeedback ? (
@@ -547,9 +555,9 @@ export function InteractiveLive() {
           <Button
             type="button"
             onClick={() => void submitDebate()}
-            disabled={busy}
+            loading={busy}
           >
-            提交发言
+            {busy ? "提交中…" : "提交发言"}
           </Button>
 
           <ul className="scroll-soft max-h-48 space-y-2 overflow-y-auto rounded-sm border border-[var(--line)] bg-[var(--paper)] p-3 text-sm">

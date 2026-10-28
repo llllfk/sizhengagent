@@ -25,7 +25,7 @@ const MODULES: Mod[] = [
   {
     no: "②",
     title: "教师专题答疑",
-    blurb: "疑难转接 · 排期",
+    blurb: "疑难转接 · 在线答复",
     ring: "deep",
     href: "/escalations",
     teacherHref: "/escalations",

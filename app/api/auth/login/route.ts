@@ -9,7 +9,7 @@ import {
   type PortalKind,
 } from "@/lib/auth/session";
 import { hasDb } from "@/lib/db";
-import { authenticate } from "@/lib/repo/users";
+import { authenticate, recordLogin } from "@/lib/repo/users";
 import { DbUnavailableError } from "@/lib/repo";
 
 /** 登录只验账号密码，不灌库、不跑种子 */
@@ -51,6 +51,17 @@ export async function POST(request: NextRequest) {
         : portal === "community"
           ? "/forum"
           : "/companion";
+
+    try {
+      await recordLogin({
+        user_id: user.user_id,
+        username: user.username,
+        role: user.role,
+        portal,
+      });
+    } catch (err) {
+      console.error("[login] 写入登录记录失败", err);
+    }
 
     const token = encodeSession(user);
     const res = NextResponse.json({

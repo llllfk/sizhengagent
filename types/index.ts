@@ -1,5 +1,11 @@
 /** 学情画像思维类型 */
-export type StudentTypeTag = "expression" | "creation" | "experience";
+export type StudentTypeTag =
+  | "untyped"
+  | "expression"
+  | "creation"
+  | "experience"
+  | "deliberation"
+  | "inquiry";
 
 export type QuestionType = "knowledge" | "scenario" | "value";
 
@@ -37,7 +43,7 @@ export interface QaSession {
   session_id: string;
   student_id: string;
   q_type: QuestionType;
-  followup_chain: Array<{ role: "ai" | "student"; content: string }>;
+  followup_chain: Array<{ role: "ai" | "student" | "teacher"; content: string }>;
   answer_ref?: string;
   status: "open" | "resolved" | "escalated";
 }
@@ -49,6 +55,9 @@ export interface QaEscalation {
   summary: string;
   created_at: string;
   teacher_status: "pending" | "accepted" | "scheduled" | "done";
+  teacher_reply?: string;
+  teacher_name?: string;
+  teacher_replied_at?: string;
 }
 
 export interface CabinCase {

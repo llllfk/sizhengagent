@@ -21,24 +21,20 @@ export function HighlightsGallery() {
     void load();
   }, [load]);
 
-  async function act(action: "pin" | "unpin" | "reflux", id: string) {
+  async function reflux(id: string) {
     setBusy(true);
     setToast("");
     try {
       const res = await fetch("/api/highlights", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, highlight_id: id }),
+        body: JSON.stringify({ action: "reflux", highlight_id: id }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "操作失败");
-      if (action === "reflux") {
-        setPulseId(id);
-        setToast(json.data?.kb_note ?? "已回灌答疑知识库");
-        window.setTimeout(() => setPulseId(null), 1600);
-      } else {
-        setToast(action === "pin" ? "已置顶" : "已取消置顶");
-      }
+      setPulseId(id);
+      setToast(json.data?.kb_note ?? "已回灌答疑知识库");
+      window.setTimeout(() => setPulseId(null), 1600);
       await load();
     } catch (e) {
       setToast(e instanceof Error ? e.message : "操作失败");
@@ -50,7 +46,7 @@ export function HighlightsGallery() {
   return (
     <div className="space-y-5">
       <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted)]">
-        精华来自论坛共识与转接答疑；置顶后可「一键回灌」答疑知识库，闭环课中碰撞 → 社区沉淀 → 智能学伴。
+        精华来自论坛共识与转接答疑；可「一键回灌」答疑知识库，闭环课中碰撞 → 社区沉淀 → 智能学伴。
       </p>
 
       {toast ? (
@@ -69,10 +65,7 @@ export function HighlightsGallery() {
           <li
             key={h.highlight_id}
             className={cn(
-              "animate-rise group relative overflow-hidden rounded-sm border bg-white p-5 transition",
-              h.pinned
-                ? "border-[var(--orange)] shadow-[0_14px_40px_rgba(232,120,47,0.16)]"
-                : "border-[var(--line)] hover:border-[var(--orange)]/45",
+              "animate-rise group relative overflow-hidden rounded-sm border border-[var(--line)] bg-white p-5 transition hover:border-[var(--orange)]/45",
               pulseId === h.highlight_id && "ring-2 ring-[var(--orange)]",
             )}
             style={{ animationDelay: `${i * 70}ms` }}
@@ -82,11 +75,6 @@ export function HighlightsGallery() {
               aria-hidden
             />
             <div className="flex flex-wrap items-center gap-2">
-              {h.pinned ? (
-                <span className="rounded-sm bg-[var(--orange)] px-1.5 py-0.5 text-[10px] text-white">
-                  置顶
-                </span>
-              ) : null}
               {h.refluxed ? (
                 <span className="rounded-sm border border-emerald-300/60 bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
                   已回灌知识库
@@ -116,20 +104,11 @@ export function HighlightsGallery() {
             <div className="mt-4 flex flex-wrap gap-2">
               <Button
                 type="button"
-                variant="ghost"
-                disabled={busy}
-                onClick={() =>
-                  void act(h.pinned ? "unpin" : "pin", h.highlight_id)
-                }
+                loading={busy}
+                disabled={h.refluxed}
+                onClick={() => void reflux(h.highlight_id)}
               >
-                {h.pinned ? "取消置顶" : "置顶"}
-              </Button>
-              <Button
-                type="button"
-                disabled={busy || h.refluxed}
-                onClick={() => void act("reflux", h.highlight_id)}
-              >
-                {h.refluxed ? "已回灌" : "回灌答疑库"}
+                {h.refluxed ? "已回灌" : busy ? "回灌中…" : "回灌答疑库"}
               </Button>
             </div>
           </li>

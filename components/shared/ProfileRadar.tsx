@@ -1,6 +1,14 @@
 "use client";
 
 import { useMemo } from "react";
+import {
+  TYPE_HINT,
+  TYPE_LABEL,
+  TYPE_TAGS,
+  isFormedType,
+  typeDistTotal,
+  type TypeDist,
+} from "@/lib/content/typeTags";
 import { cn } from "@/lib/utils";
 
 export type RadarAxis = { key: string; label: string; value: number };
@@ -156,43 +164,34 @@ export function ProfileRadar({
   );
 }
 
-const TYPE_META = [
-  {
-    id: "expression" as const,
-    label: "表达型",
-    hint: "采访 · 发言 · 论坛",
-  },
-  {
-    id: "creation" as const,
-    label: "创作型",
-    hint: "微电影 · 短视频",
-  },
-  {
-    id: "experience" as const,
-    label: "体验型",
-    hint: "行走 · 情景演练",
-  },
-];
+const TYPE_META = TYPE_TAGS.map((id) => ({
+  id,
+  label: TYPE_LABEL[id],
+  hint: TYPE_HINT[id],
+}));
 
-/** 三型灯牌：激活型脉冲高亮，适合大屏讲「因材施教」 */
+/** 五型灯牌：激活型脉冲高亮，适合大屏讲「因材施教」 */
 export function TypeBeaconBoard({
   active,
   counts,
   mode = "personal",
 }: {
-  active?: "expression" | "creation" | "experience" | string;
-  counts?: { expression: number; creation: number; experience: number };
+  active?: string;
+  counts?: Partial<TypeDist>;
   mode?: "personal" | "class";
 }) {
-  const total =
-    (counts?.expression ?? 0) +
-    (counts?.creation ?? 0) +
-    (counts?.experience ?? 0);
+  const total = counts ? typeDistTotal({ ...{
+    expression: 0,
+    creation: 0,
+    experience: 0,
+    deliberation: 0,
+    inquiry: 0,
+  }, ...counts }) : 0;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
+    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       {TYPE_META.map((t, i) => {
-        const on = active === t.id;
+        const on = isFormedType(active) && active === t.id;
         const count = counts?.[t.id];
         const pct =
           total > 0 && typeof count === "number"
@@ -269,6 +268,27 @@ export function buildStudentRadarAxes(input: {
   const clamp = (n: number) => Math.max(12, Math.min(98, Math.round(n)));
   const tag = input.type_tag;
   const a = input.activity;
+  const activityReady = Boolean(
+    a &&
+      ((a.qa_sessions ?? 0) +
+        (a.qa_rounds ?? 0) +
+        (a.works_count ?? 0) +
+        (a.task_done ?? 0) +
+        (a.quiz_last ? 1 : 0) >
+        0),
+  );
+  if (!isFormedType(tag) && !activityReady) {
+    return [
+      { key: "expression", label: "表达", value: 8 },
+      { key: "creation", label: "创作", value: 8 },
+      { key: "experience", label: "体验", value: 8 },
+      { key: "deliberation", label: "思辨", value: 8 },
+      { key: "inquiry", label: "探究", value: 8 },
+      { key: "cognition", label: "认知", value: 8 },
+      { key: "practice", label: "实践", value: 8 },
+      { key: "focus", label: "短板补强", value: 8 },
+    ];
+  }
   if (a) {
     const boost = (t: string) => (tag === t ? 14 : 0);
     return [
@@ -295,6 +315,18 @@ export function buildStudentRadarAxes(input: {
             (a.quiz_issues ?? 0) * 10 +
             (a.quiz_last ? 12 : 0) +
             boost("experience"),
+        ),
+      },
+      {
+        key: "deliberation",
+        label: "思辨",
+        value: clamp(24 + (a.qa_rounds ?? 0) * 4 + boost("deliberation")),
+      },
+      {
+        key: "inquiry",
+        label: "探究",
+        value: clamp(
+          24 + (a.open_issues ?? 0) * 6 + (a.quiz_issues ?? 0) * 8 + boost("inquiry"),
         ),
       },
       {
@@ -340,6 +372,16 @@ export function buildStudentRadarAxes(input: {
       value: base(tag === "experience") + (tag === "experience" ? 0 : 5),
     },
     {
+      key: "deliberation",
+      label: "思辨",
+      value: base(tag === "deliberation") + (tag === "deliberation" ? 0 : 5),
+    },
+    {
+      key: "inquiry",
+      label: "探究",
+      value: base(tag === "inquiry") + (tag === "inquiry" ? 0 : 5),
+    },
+    {
       key: "cognition",
       label: "认知",
       value: Math.round(cog * 18 + 10),
@@ -359,7 +401,7 @@ export function buildStudentRadarAxes(input: {
 
 /** 班级分布雷达 */
 export function buildClassRadarAxes(input: {
-  type_dist: { expression: number; creation: number; experience: number };
+  type_dist: TypeDist;
   task_completion_rate: number;
   works_count: number;
   student_count: number;
@@ -367,12 +409,7 @@ export function buildClassRadarAxes(input: {
   open_learning_issues?: number;
   week_qa?: number;
 }): RadarAxis[] {
-  const total = Math.max(
-    1,
-    input.type_dist.expression +
-      input.type_dist.creation +
-      input.type_dist.experience,
-  );
+  const total = Math.max(1, typeDistTotal(input.type_dist));
   const worksNorm = Math.min(
     100,
     Math.round((input.works_count / Math.max(1, input.student_count)) * 55 + 35),
@@ -402,6 +439,16 @@ export function buildClassRadarAxes(input: {
         Math.round((input.type_dist.experience / total) * 100),
         qaNorm > 40 ? Math.round(qaNorm * 0.55) : 0,
       ),
+    },
+    {
+      key: "deliberation",
+      label: "思辨",
+      value: Math.round((input.type_dist.deliberation / total) * 100),
+    },
+    {
+      key: "inquiry",
+      label: "探究",
+      value: Math.round((input.type_dist.inquiry / total) * 100),
     },
     {
       key: "tasks",

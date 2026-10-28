@@ -55,7 +55,7 @@ export function StoryStrip({
       aria-label="学习路径"
       className="mb-5 flex flex-wrap items-center gap-1.5 rounded-sm border border-[var(--line)] bg-white/70 px-3 py-2 backdrop-blur-sm"
     >
-      <span className="mr-1 text-[10px] tracking-[0.2em] text-[var(--orange)]">
+      <span className="mr-1 text-xs font-bold tracking-[0.18em] text-[var(--orange)]">
         学习路径
       </span>
       {steps.map((s, i) => {
@@ -71,7 +71,7 @@ export function StoryStrip({
             <Link
               href={s.href}
               className={cn(
-                "rounded-sm px-2 py-1 text-[11px] transition",
+                "rounded-sm px-2.5 py-1.5 text-sm font-semibold transition",
                 active
                   ? "bg-gradient-to-r from-[var(--orange)] to-[var(--orange-deep)] text-white shadow-[0_4px_14px_rgba(232,120,47,0.28)]"
                   : "text-[var(--muted)] hover:bg-[var(--orange-fog)] hover:text-[var(--orange-deep)]",

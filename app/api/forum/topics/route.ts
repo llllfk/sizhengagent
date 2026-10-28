@@ -3,6 +3,7 @@ import { jsonError } from "@/lib/api/errors";
 import { requireUser } from "@/lib/auth/session";
 import {
   createTopic,
+  deleteTopic,
   getTopic,
   listReplies,
   listTopics,
@@ -50,5 +51,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: topic }, { status: 201 });
   } catch (e) {
     return jsonError(e, "发帖失败");
+  }
+}
+
+/** DELETE ?id= / body.topic_id — 仅教师可删议题 */
+export async function DELETE(request: NextRequest) {
+  try {
+    const me = await requireUser();
+    if (me.role !== "teacher") {
+      return NextResponse.json(
+        { error: "仅教师可删除议题" },
+        { status: 403 },
+      );
+    }
+    const body =
+      request.headers.get("content-type")?.includes("json")
+        ? await request.json().catch(() => ({}))
+        : {};
+    const topicId = String(
+      request.nextUrl.searchParams.get("id") ??
+        (body as { topic_id?: string; id?: string }).topic_id ??
+        (body as { id?: string }).id ??
+        "",
+    ).trim();
+    if (!topicId) {
+      return NextResponse.json({ error: "议题 id 必填" }, { status: 400 });
+    }
+    const existing = await getTopic(topicId);
+    if (!existing) {
+      return NextResponse.json({ error: "议题不存在" }, { status: 404 });
+    }
+    const deleted = await deleteTopic(topicId);
+    return NextResponse.json({ data: deleted });
+  } catch (e) {
+    return jsonError(e, "删除议题失败");
   }
 }

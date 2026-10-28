@@ -15,7 +15,7 @@ export default function ClassesPage() {
           新建班级、维护编号与备注。学生归属可在「账号管理」中调整；删除班级时学员会变为未分班。
         </p>
       </header>
-      <Panel title="班级管理" hint="需教师身份登录后操作">
+      <Panel title="班级管理">
         <ClassManager />
       </Panel>
     </div>

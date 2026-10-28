@@ -12,7 +12,7 @@ import { retrieveForQuestion } from "@/lib/content/retrieval";
 import { createSession, findStudent } from "@/lib/repo";
 
 /** Coze 知识库召回可能较慢 */
-export const maxDuration = 90;
+export const maxDuration = 25;
 
 export async function POST(request: NextRequest) {
   try {

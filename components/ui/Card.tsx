@@ -24,11 +24,11 @@ export function Panel({
       />
       {title ? (
         <header className="mb-4 pl-2">
-          <h2 className="font-display text-lg text-[var(--ink)] md:text-xl">
+          <h2 className="font-display text-xl font-bold text-[var(--ink)] md:text-2xl">
             {title}
           </h2>
           {hint ? (
-            <p className="mt-1 text-xs text-[var(--muted)] md:text-sm">{hint}</p>
+            <p className="mt-1 text-sm font-medium text-[var(--muted)] md:text-base">{hint}</p>
           ) : null}
         </header>
       ) : null}

@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { contentSafetyGate } from "@/lib/ai";
 import { jsonError } from "@/lib/api/errors";
 import { studentIdFromSession } from "@/lib/auth/session";
-import { generateScript, generateStoryboard } from "@/lib/content/video";
+import { generateWorkshopCopy } from "@/lib/content/video";
 import { getOrCreateVideo, saveVideoStep } from "@/lib/repo";
+
+export const maxDuration = 60;
 
 export async function GET() {
   try {
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     if (action === "gen_script") {
       if (!theme) {
-        return NextResponse.json({ error: "theme 必填" }, { status: 400 });
+        return NextResponse.json({ error: "请先填写主题" }, { status: 400 });
       }
       const themeGate = contentSafetyGate(`${theme} ${valuePoint}`);
       if (!themeGate.ok) {
@@ -35,8 +37,13 @@ export async function POST(request: NextRequest) {
           { status: 422 },
         );
       }
-      const script = generateScript(theme, valuePoint);
-      const gated = contentSafetyGate(script);
+      const gen = await generateWorkshopCopy({
+        kind: "script",
+        theme,
+        valuePoint,
+        studentId,
+      });
+      const gated = contentSafetyGate(gen.text);
       if (!gated.ok) {
         return NextResponse.json(
           { error: gated.reason, safety: gated },
@@ -49,17 +56,23 @@ export async function POST(request: NextRequest) {
         script: gated.text,
         step: 2,
       });
-      return NextResponse.json({ data: project });
+      return NextResponse.json({ data: { ...project, gen_source: gen.source } });
     }
 
     if (action === "gen_storyboard") {
       const current = await getOrCreateVideo(studentId);
       const t = theme || current.theme;
       if (!t) {
-        return NextResponse.json({ error: "请先完成脚本主题" }, { status: 400 });
+        return NextResponse.json({ error: "请先填写主题并生成脚本" }, { status: 400 });
       }
-      const board = generateStoryboard(t, valuePoint || current.value_point);
-      const gated = contentSafetyGate(board);
+      const gen = await generateWorkshopCopy({
+        kind: "storyboard",
+        theme: t,
+        valuePoint: valuePoint || current.value_point,
+        script: current.script,
+        studentId,
+      });
+      const gated = contentSafetyGate(gen.text);
       if (!gated.ok) {
         return NextResponse.json(
           { error: gated.reason, safety: gated },
@@ -72,16 +85,34 @@ export async function POST(request: NextRequest) {
         storyboard: gated.text,
         step: 3,
       });
-      return NextResponse.json({ data: project });
+      return NextResponse.json({ data: { ...project, gen_source: gen.source } });
     }
 
     if (action === "subtitle") {
-      const note = String(body.subtitle_note ?? "已生成中文字幕轴");
+      const current = await getOrCreateVideo(studentId);
+      const t = theme || current.theme;
+      if (!t) {
+        return NextResponse.json({ error: "请先填写主题" }, { status: 400 });
+      }
+      const gen = await generateWorkshopCopy({
+        kind: "subtitle",
+        theme: t,
+        valuePoint: valuePoint || current.value_point,
+        script: current.script,
+        studentId,
+      });
+      const gated = contentSafetyGate(gen.text);
+      if (!gated.ok) {
+        return NextResponse.json(
+          { error: gated.reason, safety: gated },
+          { status: 422 },
+        );
+      }
       const project = await saveVideoStep(studentId, {
-        subtitle_note: note,
+        subtitle_note: gated.text,
         step: 4,
       });
-      return NextResponse.json({ data: project });
+      return NextResponse.json({ data: { ...project, gen_source: gen.source } });
     }
 
     const project = await saveVideoStep(studentId, {

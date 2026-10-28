@@ -10,7 +10,7 @@ export default function TasksPage() {
         </p>
         <h1 className="font-brand text-4xl text-[var(--ink)]">分层任务</h1>
         <p className="max-w-xl text-sm text-[var(--muted)]">
-          表达型→街头采访 · 创作型→微电影/AI短视频 · 体验型→行走的思政课
+          表达型→街头采访 · 创作型→短视频 · 体验型→行走的思政课 · 思辨型→议题论证 · 探究型→案例深挖
         </p>
       </header>
       <Panel title="我的任务" hint="按画像自动分发 · 可推进进度">

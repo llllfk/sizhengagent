@@ -2,21 +2,52 @@
 
 import { useEffect, useState } from "react";
 
+type DbState = "loading" | "ok" | "off";
+
+/** 跨路由复用，避免 PortalShell 重挂时每次「正在连接数据库…」 */
+let healthCache: { state: Exclude<DbState, "loading">; at: number } | null =
+  null;
+const HEALTH_TTL_MS = 5 * 60_000;
+let healthInflight: Promise<Exclude<DbState, "loading">> | null = null;
+
+function probeHealth(): Promise<Exclude<DbState, "loading">> {
+  if (healthCache && Date.now() - healthCache.at < HEALTH_TTL_MS) {
+    return Promise.resolve(healthCache.state);
+  }
+  if (healthInflight) return healthInflight;
+  healthInflight = fetch("/api/health")
+    .then((r) => r.json())
+    .then((j) => {
+      const next: Exclude<DbState, "loading"> =
+        j.data?.db === "ok" ? "ok" : "off";
+      healthCache = { state: next, at: Date.now() };
+      return next;
+    })
+    .catch(() => {
+      const next: Exclude<DbState, "loading"> = "off";
+      healthCache = { state: next, at: Date.now() };
+      return next;
+    })
+    .finally(() => {
+      healthInflight = null;
+    });
+  return healthInflight;
+}
+
 /** 无 DATABASE_URL / 库不可用时，不渲染业务内容 */
 export function DbGate({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<"loading" | "ok" | "off">("loading");
+  const [state, setState] = useState<DbState>(() => {
+    if (healthCache && Date.now() - healthCache.at < HEALTH_TTL_MS) {
+      return healthCache.state;
+    }
+    return "loading";
+  });
 
   useEffect(() => {
     let cancelled = false;
-    void fetch("/api/health")
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return;
-        setState(j.data?.db === "ok" ? "ok" : "off");
-      })
-      .catch(() => {
-        if (!cancelled) setState("off");
-      });
+    void probeHealth().then((next) => {
+      if (!cancelled) setState(next);
+    });
     return () => {
       cancelled = true;
     };

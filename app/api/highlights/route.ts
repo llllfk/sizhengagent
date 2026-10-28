@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
 import {
   listHighlights,
-  pinHighlight,
   promoteTopicToHighlight,
   refluxHighlight,
 } from "@/lib/repo";
@@ -37,14 +36,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "highlight_id 必填" }, { status: 400 });
     }
 
-    if (action === "pin" || action === "unpin") {
-      const item = await pinHighlight(highlightId, action === "pin");
-      if (!item) {
-        return NextResponse.json({ error: "精华不存在" }, { status: 404 });
-      }
-      return NextResponse.json({ data: item });
-    }
-
     if (action === "reflux") {
       const result = await refluxHighlight(highlightId);
       if (!result) {
@@ -54,7 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: "action 须为 pin|unpin|reflux|promote" },
+      { error: "action 须为 reflux|promote" },
       { status: 400 },
     );
   } catch (e) {

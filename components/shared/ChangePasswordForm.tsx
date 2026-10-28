@@ -79,7 +79,7 @@ export function ChangePasswordForm() {
         />
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="button" disabled={busy} onClick={() => void submit()}>
+        <Button type="button" loading={busy} onClick={() => void submit()}>
           {busy ? "提交中…" : "修改密码"}
         </Button>
         {msg ? (

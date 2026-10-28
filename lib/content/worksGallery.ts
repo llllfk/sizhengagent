@@ -29,7 +29,7 @@ export function galleryPublicRel(id: string): string {
 }
 
 /**
- * 文案：有客户备注的已改；未备注的保留原命名。
+ * 文案以成片画面 / 片内字幕为准，奖项层级跟原片文件名。
  * 中心默认：醒狮·少年路
  */
 export const WORKS_GALLERY: WorkClip[] = [
@@ -54,8 +54,8 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "lion-school",
     file: "1.校级一等奖醒狮 文化安全.mp4",
-    title: "醒狮云跃·思政领航·青春薪火",
-    award: "省级·「技能成才，强国有我」一等奖",
+    title: "根脉·新生",
+    award: "校级·国家安全教育微视频大赛特等奖",
     tag: "文化安全",
     size: "md",
     ring: "inner",
@@ -64,7 +64,7 @@ export const WORKS_GALLERY: WorkClip[] = [
     id: "walk-prov",
     file: "4.省级和校级一等奖：行走的思政课.mp4",
     title: "行走的思政课",
-    award: "校级·行走的思政课特等奖",
+    award: "省级和校级一等奖",
     tag: "行走思政",
     size: "md",
     ring: "inner",
@@ -81,17 +81,17 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "interview-campus",
     file: "11.校园采访.mp4",
-    title: "「大思政」下青年的文化传承路",
-    award: "省级·第十届广东高校网络媒体展示一等奖",
-    tag: "文化传承",
+    title: "街头声音·廉洁",
+    award: "校本专题",
+    tag: "清风正气",
     size: "md",
     ring: "inner",
   },
   {
     id: "campus-safe",
     file: "10.校园安全.mp4",
-    title: "根脉·新生",
-    award: "校级·国家安全教育微视频大赛特等奖",
+    title: "校园安全",
+    award: "校本专题",
     tag: "安全底线",
     size: "tall",
     ring: "inner",
@@ -99,13 +99,12 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "social",
     file: "3.国家级：社会服务.mp4",
-    title: "思政青焰",
-    award: "省级·「打卡广东红」优秀短视频",
-    tag: "奉献担当",
+    title: "「大思政」视域下青年的文化创承路",
+    award: "省级·第十届广东高校网络媒体展示节一等奖",
+    tag: "文化传承",
     size: "sm",
     ring: "inner",
   },
-  // —— 以下未备注：保留原命名，外圈环绕 ——
   {
     id: "cabin-sim",
     file: "9.客舱模拟.mp4",
@@ -127,16 +126,16 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "rescue-nation",
     file: "2.国家级：紧急救助.mp4",
-    title: "紧急救助",
+    title: "成为国航乘务员",
     award: "国家级",
-    tag: "生命至上",
+    tag: "空乘梦想",
     size: "sm",
     ring: "outer",
   },
   {
     id: "walk-bronze",
     file: "省级三等奖：行走的思政课.mp4",
-    title: "行走的思政课",
+    title: "思政青焰",
     award: "省级三等奖",
     tag: "行走思政",
     size: "sm",
@@ -154,9 +153,9 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "integrity",
     file: "11.廉洁 (1).mp4",
-    title: "廉洁",
+    title: "青春筑防线",
     award: "校本专题",
-    tag: "清风正气",
+    tag: "职业形象",
     size: "sm",
     ring: "outer",
   },
@@ -172,7 +171,7 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "rescue-short",
     file: "7.紧急救助.mp4",
-    title: "紧急救助·短片",
+    title: "紧急救助",
     award: "实训成片",
     tag: "应急处置",
     size: "sm",

@@ -7,13 +7,17 @@ CREATE TABLE IF NOT EXISTS student_profile (
   id BIGSERIAL PRIMARY KEY,
   student_id VARCHAR(64) NOT NULL UNIQUE,
   name VARCHAR(100) NOT NULL,
-  type_tag VARCHAR(32) NOT NULL CHECK (type_tag IN ('expression', 'creation', 'experience')),
+  type_tag VARCHAR(32) NOT NULL CHECK (type_tag IN ('untyped', 'expression', 'creation', 'experience', 'deliberation', 'inquiry')),
   cognition_level INT DEFAULT 1,
   weak_points JSONB DEFAULT '[]',
   preference JSONB DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE student_profile DROP CONSTRAINT IF EXISTS student_profile_type_tag_check;
+ALTER TABLE student_profile ADD CONSTRAINT student_profile_type_tag_check
+  CHECK (type_tag IN ('untyped', 'expression', 'creation', 'experience', 'deliberation', 'inquiry'));
 
 -- 2. 答疑知识库
 CREATE TABLE IF NOT EXISTS qa_session (
@@ -43,6 +47,10 @@ CREATE TABLE IF NOT EXISTS qa_escalation (
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE qa_escalation ADD COLUMN IF NOT EXISTS teacher_reply TEXT;
+ALTER TABLE qa_escalation ADD COLUMN IF NOT EXISTS teacher_name VARCHAR(100);
+ALTER TABLE qa_escalation ADD COLUMN IF NOT EXISTS teacher_replied_at TIMESTAMPTZ;
 
 -- 3. 互动内容库
 CREATE TABLE IF NOT EXISTS interactive_content (
@@ -258,3 +266,16 @@ CREATE TABLE IF NOT EXISTS class_group (
 ALTER TABLE student_profile ADD COLUMN IF NOT EXISTS class_id VARCHAR(64);
 CREATE INDEX IF NOT EXISTS idx_class_group_code ON class_group (code);
 CREATE INDEX IF NOT EXISTS idx_student_profile_class ON student_profile (class_id);
+
+-- 13. 登录记录（学生管理可查询每次登录时间）
+CREATE TABLE IF NOT EXISTS login_event (
+  id BIGSERIAL PRIMARY KEY,
+  event_id VARCHAR(64) NOT NULL UNIQUE,
+  user_id VARCHAR(64) NOT NULL,
+  username VARCHAR(64) NOT NULL,
+  role VARCHAR(16) NOT NULL,
+  portal VARCHAR(16),
+  logged_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_login_event_user ON login_event (user_id, logged_at DESC);
+ALTER TABLE app_user ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;

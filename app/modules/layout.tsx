@@ -28,14 +28,7 @@ export default function ModulesLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isTeacher, loading } = useSession();
-  if (loading) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-[var(--paper)] text-sm text-[var(--muted)]">
-        加载模块图…
-      </div>
-    );
-  }
+  const { isTeacher } = useSession();
   return (
     <PortalShell
       title={isTeacher ? "教师智能工作台" : "学生智能学伴"}

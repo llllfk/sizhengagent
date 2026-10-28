@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "@/components/shared/useSession";
 import { cn } from "@/lib/utils";
+import { TYPE_LABEL, TYPE_TAGS } from "@/lib/content/typeTags";
 import type { ClassGroup } from "@/types";
 
 type Account = {
@@ -15,8 +16,32 @@ type Account = {
   class_id: string | null;
   class_name: string | null;
   class_code: string | null;
+  last_login_at: string | null;
+  login_count: number;
   active: boolean;
   created_at: string;
+};
+
+type LoginEvent = {
+  event_id: string;
+  logged_at: string;
+  portal: string | null;
+};
+
+function formatLoginAt(iso: string | null | undefined) {
+  if (!iso) return "尚未登录";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "尚未登录";
+  return d.toLocaleString("zh-CN", {
+    hour12: false,
+    timeZone: "Asia/Shanghai",
+  });
+}
+
+const PORTAL_LABEL: Record<string, string> = {
+  student: "学生学伴",
+  teacher: "教师工作台",
+  community: "研讨社区",
 };
 
 const PAGE_SIZE = 20;
@@ -29,6 +54,9 @@ export function AccountManager() {
   const [msg, setMsg] = useState("");
   const [page, setPage] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [logUserId, setLogUserId] = useState<string | null>(null);
+  const [logItems, setLogItems] = useState<LoginEvent[]>([]);
+  const [logBusy, setLogBusy] = useState(false);
   const [editDraft, setEditDraft] = useState({
     username: "",
     display_name: "",
@@ -44,6 +72,7 @@ export function AccountManager() {
     role: "student" as "teacher" | "student",
     student_id: "",
     class_id: "",
+    type_tag: "",
   });
 
   const load = useCallback(async () => {
@@ -138,6 +167,10 @@ export function AccountManager() {
           role: form.role,
           student_id: form.student_id || undefined,
           class_id: form.class_id || undefined,
+          type_tag:
+            form.role === "student" && form.type_tag
+              ? form.type_tag
+              : undefined,
         }),
       });
       const json = await res.json();
@@ -149,6 +182,7 @@ export function AccountManager() {
         role: "student",
         student_id: "",
         class_id: "",
+        type_tag: "",
       });
       setMsg("已创建账号");
       await load();
@@ -190,6 +224,30 @@ export function AccountManager() {
       setMsg(e instanceof Error ? e.message : "重置失败");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function toggleLogins(a: Account) {
+    if (logUserId === a.user_id) {
+      setLogUserId(null);
+      setLogItems([]);
+      return;
+    }
+    setLogBusy(true);
+    setLogUserId(a.user_id);
+    setLogItems([]);
+    try {
+      const res = await fetch(
+        `/api/teacher/accounts/logins?user_id=${encodeURIComponent(a.user_id)}`,
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "读取登录记录失败");
+      setLogItems(json.data?.events ?? []);
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : "读取登录记录失败");
+      setLogUserId(null);
+    } finally {
+      setLogBusy(false);
     }
   }
 
@@ -281,8 +339,8 @@ export function AccountManager() {
           </div>
           <Button
             type="button"
+            loading={busy}
             disabled={
-              busy ||
               !selfDraft.display_name.trim() ||
               !selfDraft.username.trim() ||
               (selfDraft.display_name === me.display_name &&
@@ -290,7 +348,7 @@ export function AccountManager() {
             }
             onClick={() => void saveAccount(me.user_id, selfDraft, true)}
           >
-            保存本人信息
+            {busy ? "保存中…" : "保存本人信息"}
           </Button>
         </section>
       ) : null}
@@ -343,6 +401,20 @@ export function AccountManager() {
               />
               <select
                 className="rounded-sm border border-[var(--line)] px-3 py-2 text-sm outline-none focus:border-[var(--orange)]"
+                value={form.type_tag}
+                onChange={(e) =>
+                  setForm({ ...form, type_tag: e.target.value })
+                }
+              >
+                <option value="">暂不指定 · 完成操作后再生成</option>
+                {TYPE_TAGS.map((k) => (
+                  <option key={k} value={k}>
+                    {TYPE_LABEL[k]}
+                  </option>
+                ))}
+              </select>
+              <select
+                className="rounded-sm border border-[var(--line)] px-3 py-2 text-sm outline-none focus:border-[var(--orange)]"
                 value={form.class_id}
                 onChange={(e) =>
                   setForm({ ...form, class_id: e.target.value })
@@ -358,8 +430,8 @@ export function AccountManager() {
             </>
           ) : null}
         </div>
-        <Button type="button" disabled={busy} onClick={() => void create()}>
-          创建账号
+        <Button type="button" loading={busy} onClick={() => void create()}>
+          {busy ? "创建中…" : "创建账号"}
         </Button>
       </section>
 
@@ -452,6 +524,12 @@ export function AccountManager() {
                             : " · 未分班"}
                         </p>
                       ) : null}
+                      {a.role === "student" ? (
+                        <p className="mt-1 text-[11px] font-medium text-[var(--ink)]">
+                          最近登录 {formatLoginAt(a.last_login_at)}
+                          {a.login_count > 0 ? ` · 共 ${a.login_count} 次` : ""}
+                        </p>
+                      ) : null}
                     </>
                   )}
                 </div>
@@ -460,12 +538,12 @@ export function AccountManager() {
                     <>
                       <Button
                         type="button"
-                        disabled={busy}
+                        loading={busy}
                         onClick={() =>
                           void saveAccount(a.user_id, editDraft, isSelf)
                         }
                       >
-                        保存
+                        {busy ? "保存中…" : "保存"}
                       </Button>
                       <Button
                         type="button"
@@ -478,6 +556,21 @@ export function AccountManager() {
                     </>
                   ) : (
                     <>
+                      {a.role === "student" ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          loading={logBusy}
+                          disabled={busy}
+                          onClick={() => void toggleLogins(a)}
+                        >
+                          {logBusy
+                            ? "加载中…"
+                            : logUserId === a.user_id
+                              ? "收起记录"
+                              : "登录记录"}
+                        </Button>
+                      ) : null}
                       {a.role === "student" && a.student_id ? (
                         <select
                           className="rounded-sm border border-[var(--line)] px-2 py-1.5 text-[11px] outline-none focus:border-[var(--orange)]"
@@ -504,31 +597,62 @@ export function AccountManager() {
                       <Button
                         type="button"
                         variant="ghost"
-                        disabled={busy}
+                        loading={busy}
                         onClick={() => void toggleActive(a)}
                       >
-                        {a.active ? "停用" : "启用"}
+                        {busy ? "处理中…" : a.active ? "停用" : "启用"}
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
-                        disabled={busy}
+                        loading={busy}
                         onClick={() => void resetPassword(a)}
                       >
-                        重置密码
+                        {busy ? "重置中…" : "重置密码"}
                       </Button>
                       <Button
                         type="button"
                         variant="ghost"
-                        disabled={busy || isSelf}
+                        loading={busy}
+                        disabled={isSelf}
                         onClick={() => void remove(a)}
                       >
-                        删除
+                        {busy ? "删除中…" : "删除"}
                       </Button>
                     </>
                   )}
                 </div>
               </div>
+              {logUserId === a.user_id ? (
+                <div className="mt-3 rounded-sm border border-[var(--line)] bg-[var(--paper)] px-3 py-2">
+                  <p className="mb-1.5 text-xs font-semibold text-[var(--orange-deep)]">
+                    登录时间记录
+                  </p>
+                  {logBusy ? (
+                    <p className="text-sm text-[var(--muted)]">读取中…</p>
+                  ) : logItems.length === 0 ? (
+                    <p className="text-sm text-[var(--muted)]">暂无登录记录</p>
+                  ) : (
+                    <ul className="max-h-48 space-y-1 overflow-y-auto">
+                      {logItems.map((ev) => (
+                        <li
+                          key={ev.event_id}
+                          className="flex flex-wrap items-center justify-between gap-2 text-sm"
+                        >
+                          <span className="font-medium text-[var(--ink)]">
+                            {formatLoginAt(ev.logged_at)}
+                          </span>
+                          <span className="text-xs text-[var(--muted)]">
+                            {ev.portal
+                              ? PORTAL_LABEL[ev.portal] ?? ev.portal
+                              : "登录"}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ) : null}
             </li>
           );
         })}

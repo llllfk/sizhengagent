@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DbGate } from "@/components/shared/DbGate";
 import { StoryStrip } from "@/components/shared/StoryStrip";
-import { useSession } from "@/components/shared/useSession";
+import {
+  clearSessionCache,
+  useSession,
+} from "@/components/shared/useSession";
 import { cn } from "@/lib/utils";
 
 export type NavItem = { href: string; label: string; tag?: string };
@@ -67,10 +70,10 @@ export function PortalShell({
             </Link>
             <span className="hidden h-4 w-px bg-[var(--line)] sm:block" />
             <div className="min-w-0">
-              <p className="truncate text-[10px] tracking-[0.28em] text-[var(--orange)]">
+              <p className="truncate text-xs font-semibold tracking-[0.22em] text-[var(--orange)]">
                 {meta.eyebrow}
               </p>
-              <h1 className="font-display truncate text-sm text-[var(--ink)] md:text-base">
+              <h1 className="font-display truncate text-base font-bold text-[var(--ink)] md:text-lg">
                 {title}
               </h1>
             </div>
@@ -79,13 +82,13 @@ export function PortalShell({
             {user ? (
               <>
                 <div className="flex min-w-0 max-w-[58vw] items-center gap-1.5 sm:max-w-[360px]">
-                  <span className="truncate text-[12px] text-[var(--ink)]">
+                  <span className="truncate text-sm font-semibold text-[var(--ink)]">
                     {user.display_name}
                   </span>
                   {user.role === "student" ? (
                     <span
                       title={user.class_name || "未分班"}
-                      className="inline-flex max-w-[28vw] shrink-0 items-center truncate rounded-full border border-[var(--orange)]/35 bg-[var(--orange-fog)] px-2 py-0.5 text-[10px] tracking-wide text-[var(--orange-deep)] sm:max-w-[160px]"
+                      className="inline-flex max-w-[28vw] shrink-0 items-center truncate rounded-full border border-[var(--orange)]/35 bg-[var(--orange-fog)] px-2 py-0.5 text-xs font-semibold tracking-wide text-[var(--orange-deep)] sm:max-w-[160px]"
                     >
                       {user.class_name || "未分班"}
                     </span>
@@ -107,6 +110,7 @@ export function PortalShell({
                       typeof window !== "undefined"
                         ? window.sessionStorage.getItem("qihang_portal")
                         : null;
+                    clearSessionCache();
                     void fetch("/api/auth/logout", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
@@ -150,9 +154,9 @@ export function PortalShell({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "shrink-0 rounded-sm px-3 py-2 text-xs tracking-wide transition md:text-sm",
+                  "shrink-0 rounded-sm px-3 py-2 text-sm font-semibold tracking-wide transition md:text-base",
                   active
-                    ? "bg-gradient-to-r from-[var(--orange)] to-[var(--orange-deep)] font-medium text-white shadow-[0_8px_24px_rgba(232,120,47,0.28)]"
+                    ? "bg-gradient-to-r from-[var(--orange)] to-[var(--orange-deep)] font-bold text-white shadow-[0_8px_24px_rgba(232,120,47,0.28)]"
                     : "text-[var(--muted)] hover:bg-[var(--orange-fog)] hover:text-[var(--orange-deep)]",
                 )}
               >

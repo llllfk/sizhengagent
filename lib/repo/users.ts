@@ -18,6 +18,17 @@ export type AppUserPublic = Omit<AppUserRow, "password_hash"> & {
   class_id: string | null;
   class_name: string | null;
   class_code: string | null;
+  last_login_at: string | null;
+  login_count: number;
+};
+
+export type LoginEvent = {
+  event_id: string;
+  user_id: string;
+  username: string;
+  role: string;
+  portal: string | null;
+  logged_at: string;
 };
 
 function mapPublic(row: Record<string, unknown>): AppUserPublic {
@@ -32,20 +43,94 @@ function mapPublic(row: Record<string, unknown>): AppUserPublic {
     class_id: row.class_id ? String(row.class_id) : null,
     class_name: row.class_name ? String(row.class_name) : null,
     class_code: row.class_code ? String(row.class_code) : null,
+    last_login_at: row.last_login_at
+      ? new Date(row.last_login_at as Date).toISOString()
+      : null,
+    login_count: Number(row.login_count ?? 0),
   };
 }
 
 export async function listUsers(): Promise<AppUserPublic[]> {
   const r = await query(
     `select u.user_id, u.username, u.role, u.display_name, u.student_id,
-            u.active, u.created_at,
-            s.class_id, c.name as class_name, c.code as class_code
+            u.active, u.created_at, u.last_login_at,
+            s.class_id, c.name as class_name, c.code as class_code,
+            coalesce(lg.cnt, 0)::int as login_count
      from app_user u
      left join student_profile s on s.student_id = u.student_id
      left join class_group c on c.class_id = s.class_id
+     left join (
+       select user_id, count(*)::int as cnt
+       from login_event
+       group by user_id
+     ) lg on lg.user_id = u.user_id
      order by u.role desc, u.username asc`,
   );
   return r.rows.map((row) => mapPublic(row as Record<string, unknown>));
+}
+
+export async function recordLogin(input: {
+  user_id: string;
+  username: string;
+  role: "teacher" | "student";
+  portal?: string | null;
+}) {
+  await query(`
+    CREATE TABLE IF NOT EXISTS login_event (
+      id BIGSERIAL PRIMARY KEY,
+      event_id VARCHAR(64) NOT NULL UNIQUE,
+      user_id VARCHAR(64) NOT NULL,
+      username VARCHAR(64) NOT NULL,
+      role VARCHAR(16) NOT NULL,
+      portal VARCHAR(16),
+      logged_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await query(
+    `CREATE INDEX IF NOT EXISTS idx_login_event_user ON login_event (user_id, logged_at DESC)`,
+  );
+  await query(
+    `ALTER TABLE app_user ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ`,
+  );
+  const eventId = `lg_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  await query(
+    `insert into login_event
+      (event_id, user_id, username, role, portal, logged_at)
+     values ($1,$2,$3,$4,$5,now())`,
+    [
+      eventId,
+      input.user_id,
+      input.username,
+      input.role,
+      input.portal ?? null,
+    ],
+  );
+  await query(
+    `update app_user set last_login_at=now(), updated_at=now() where user_id=$1`,
+    [input.user_id],
+  );
+}
+
+export async function listLoginEvents(
+  userId: string,
+  limit = 50,
+): Promise<LoginEvent[]> {
+  const r = await query(
+    `select event_id, user_id, username, role, portal, logged_at
+     from login_event
+     where user_id=$1
+     order by logged_at desc
+     limit $2`,
+    [userId, Math.min(100, Math.max(1, limit))],
+  );
+  return r.rows.map((row) => ({
+    event_id: String(row.event_id),
+    user_id: String(row.user_id),
+    username: String(row.username),
+    role: String(row.role),
+    portal: row.portal ? String(row.portal) : null,
+    logged_at: new Date(row.logged_at as Date).toISOString(),
+  }));
 }
 
 export async function findStudentClass(studentId: string): Promise<{
@@ -109,6 +194,7 @@ export async function createUser(input: {
   display_name: string;
   student_id?: string | null;
   class_id?: string | null;
+  type_tag?: string | null;
 }) {
   const userId = `u_${Date.now()}`;
   const now = new Date().toISOString();
@@ -132,12 +218,19 @@ export async function createUser(input: {
     await query(
       `insert into student_profile
         (student_id, name, type_tag, cognition_level, weak_points, class_id, updated_at)
-       values ($1,$2,'creation',2,'[]'::jsonb,$4,$3)
+       values ($1,$2,$5,2,'[]'::jsonb,$4,$3)
        on conflict (student_id) do update set
          name=excluded.name,
          class_id=coalesce(excluded.class_id, student_profile.class_id),
+         type_tag=coalesce(excluded.type_tag, student_profile.type_tag),
          updated_at=excluded.updated_at`,
-      [sid, input.display_name.trim(), now, classId],
+      [
+        sid,
+        input.display_name.trim(),
+        now,
+        classId,
+        input.type_tag?.trim() || "untyped",
+      ],
     );
   }
   const list = await listUsers();
@@ -246,12 +339,21 @@ export async function changeOwnPassword(
 export async function ensureTeacherAccount() {
   const username = "13250707525";
   const exists = await findUserByUsername(username);
-  if (exists) return;
+  if (exists) {
+    const name = String(exists.display_name ?? "");
+    if (!name || name === "教师" || /kk/i.test(name)) {
+      await query(
+        `update app_user set display_name='李雷', updated_at=now() where username=$1`,
+        [username],
+      );
+    }
+    return;
+  }
   await createUser({
     username,
     password: "yuerkk7525",
     role: "teacher",
-    display_name: "教师",
+    display_name: "李雷",
     student_id: null,
   });
 }

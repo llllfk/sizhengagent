@@ -7,6 +7,7 @@ export {
   endRoom,
   generateScript,
   getActiveRoom,
+  scriptLineDigest,
   getRoom,
   listRooms,
   startRoom,

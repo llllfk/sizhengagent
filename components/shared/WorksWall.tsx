@@ -74,10 +74,10 @@ const TIER_WIDTH: Record<1 | 2, string> = {
   2: "14.5%",
 };
 
-/** 省级/校级略大，但仍受环距约束，避免盖住邻卡 */
+/** 国家级最大，省级/校级次之；仍受环距约束，避免盖住邻卡 */
 function satWidth(award: string, tier: 1 | 2): string {
+  if (/国家级/.test(award)) return tier === 1 ? "22%" : "17.5%";
   if (/省级|校级/.test(award)) return tier === 1 ? "20%" : "16%";
-  if (/国家级/.test(award)) return tier === 1 ? "19%" : "15%";
   return TIER_WIDTH[tier];
 }
 
@@ -213,10 +213,14 @@ function Satellite({
     "--float-delay": `${(index % 7) * -0.7}s`,
   } as CSSProperties;
 
+  const nation = isNational(clip.award);
+
   return (
     <button
       type="button"
-      className={`works-sat absolute works-sat-t${slot.tier} works-sat-clear`}
+      className={`works-sat absolute works-sat-t${slot.tier} works-sat-clear${
+        nation ? " works-sat-nation" : ""
+      }`}
       style={style}
       onClick={onPromote}
       title={`${clip.award} · ${clip.title}`}
@@ -227,16 +231,31 @@ function Satellite({
         }`}
       >
         <div className="works-pane-bob absolute inset-0">
-          <div className="works-pane-frame absolute inset-0 overflow-hidden rounded-[3px]">
+          <div
+            className={`works-pane-frame absolute inset-0 overflow-hidden rounded-[3px]${
+              nation ? " works-pane-frame-nation" : ""
+            }`}
+          >
             <div className="works-pane-shine" aria-hidden />
             <Media
               clip={clip}
               className="works-pane-video pointer-events-none absolute inset-0 h-full w-full object-cover"
             />
             <div className="works-pane-veil pointer-events-none absolute inset-0" />
+            {nation ? (
+              <span className="works-stamp works-stamp-nation works-stamp-sat" aria-hidden>
+                国家级
+              </span>
+            ) : null}
             {/* 文案叠在画面内，避免伸出后与邻卡重叠 */}
             <div className="works-sat-caption pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[rgba(61,42,26,0.88)] via-[rgba(61,42,26,0.45)] to-transparent px-1.5 pb-1.5 pt-5 text-center">
-              <p className="line-clamp-1 text-[7px] leading-snug tracking-wide text-[var(--orange-soft)] md:text-[8px]">
+              <p
+                className={`line-clamp-1 text-[7px] leading-snug tracking-wide md:text-[8px] ${
+                  nation
+                    ? "font-medium text-[#FFE6A8]"
+                    : "text-[var(--orange-soft)]"
+                }`}
+              >
                 {clip.award}
               </p>
               <h3 className="mt-0.5 line-clamp-1 font-display text-[9px] leading-snug text-white md:text-[10px]">
@@ -342,6 +361,7 @@ function Hero({
   onPreview: () => void;
 }) {
   const stamps = stampLabels(clip.award);
+  const nation = isNational(clip.award);
   return (
     <button
       type="button"
@@ -351,7 +371,11 @@ function Hero({
       onClick={onPreview}
       title={`点击预览 · ${clip.title}`}
     >
-      <div className="works-pane-frame works-hero-frame relative aspect-[16/10] w-full overflow-visible rounded-[4px]">
+      <div
+        className={`works-pane-frame works-hero-frame relative aspect-[16/10] w-full overflow-visible rounded-[4px]${
+          nation ? " works-pane-frame-nation" : ""
+        }`}
+      >
         {/* 画面单独裁切；印章叠在框外，避免只露一半 */}
         <div className="absolute inset-0 overflow-hidden rounded-[4px]">
           <div className="works-pane-shine" aria-hidden />
@@ -362,7 +386,13 @@ function Hero({
           />
           <div className="works-pane-veil pointer-events-none absolute inset-0" />
           <div className="works-hero-caption pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-[rgba(61,42,26,0.9)] via-[rgba(61,42,26,0.4)] to-transparent px-3 pb-2.5 pt-8 text-center">
-            <p className="text-[10px] leading-snug tracking-[0.06em] text-[var(--orange-soft)] md:text-[11px]">
+            <p
+              className={`text-[10px] leading-snug tracking-[0.06em] md:text-[11px] ${
+                nation
+                  ? "font-semibold text-[#FFE6A8]"
+                  : "text-[var(--orange-soft)]"
+              }`}
+            >
               {clip.award}
             </p>
             <h3 className="mt-1 font-display text-sm text-white md:text-base">
@@ -375,7 +405,11 @@ function Hero({
             {stamps.map((s, i) => (
               <span
                 key={`${clip.id}-${s}`}
-                className="works-stamp"
+                className={
+                  s === "国家级"
+                    ? "works-stamp works-stamp-nation"
+                    : "works-stamp"
+                }
                 style={{ animationDelay: `${0.35 + i * 0.22}s` }}
               >
                 {s}
@@ -427,18 +461,33 @@ function HonorRail({
       </div>
       <div className="works-honor-rail" aria-label="荣誉滚动轨">
         <div className="works-honor-track">
-          {loop.map((c, i) => (
-            <button
-              key={`${c.id}-${i}`}
-              type="button"
-              className="works-honor-chip"
-              onClick={() => onPick(c.id)}
-              title={`切换中心 · ${c.title}`}
-            >
-              <span className="works-honor-chip-award">{c.award}</span>
-              <span className="works-honor-chip-title">{c.title}</span>
-            </button>
-          ))}
+          {loop.map((c, i) => {
+            const nation = isNational(c.award);
+            return (
+              <button
+                key={`${c.id}-${i}`}
+                type="button"
+                className={
+                  nation
+                    ? "works-honor-chip works-honor-chip-nation"
+                    : "works-honor-chip"
+                }
+                onClick={() => onPick(c.id)}
+                title={`切换中心 · ${c.title}`}
+              >
+                <span
+                  className={
+                    nation
+                      ? "works-honor-chip-award works-honor-chip-award-nation"
+                      : "works-honor-chip-award"
+                  }
+                >
+                  {nation ? "国家级" : c.award}
+                </span>
+                <span className="works-honor-chip-title">{c.title}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -483,8 +532,13 @@ function placeSatellites(
   return out;
 }
 
+/** 成果元数据跨次进入复用，避免切回成果库再等 API */
+let galleryCache: WorkClip[] | null = null;
+
 export function WorksWall() {
-  const [clips, setClips] = useState<WorkClip[]>(WORKS_GALLERY);
+  const [clips, setClips] = useState<WorkClip[]>(
+    () => galleryCache ?? WORKS_GALLERY,
+  );
   const [heroId, setHeroId] = useState("lion-nation");
   const [previewOpen, setPreviewOpen] = useState(false);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -508,35 +562,39 @@ export function WorksWall() {
   }
 
   useEffect(() => {
+    if (galleryCache?.length) {
+      setClips(galleryCache);
+      return;
+    }
     void (async () => {
       try {
         const res = await fetch("/api/works/gallery");
         const json = await res.json();
         if (!res.ok || !json?.data?.clips?.length) return;
-        setClips(
-          json.data.clips.map(
-            (c: {
-              clip_id: string;
-              title: string;
-              award: string;
-              tag: string;
-              size: WorkClip["size"];
-              source_file: string;
-            }) => {
-              const local = WORKS_GALLERY.find((w) => w.id === c.clip_id);
-              return {
-                id: c.clip_id,
-                file: c.source_file,
-                // API 旧种子可能过期：优先本地已改文案
-                title: local?.title ?? c.title,
-                award: local?.award ?? c.award,
-                tag: local?.tag ?? c.tag,
-                size: local?.size ?? c.size,
-                ring: local?.ring,
-              };
-            },
-          ),
-        );
+        const next = json.data.clips.map(
+          (c: {
+            clip_id: string;
+            title: string;
+            award: string;
+            tag: string;
+            size: WorkClip["size"];
+            source_file: string;
+          }) => {
+            const local = WORKS_GALLERY.find((w) => w.id === c.clip_id);
+            return {
+              id: c.clip_id,
+              file: c.source_file,
+              // API 旧种子可能过期：优先本地已改文案
+              title: local?.title ?? c.title,
+              award: local?.award ?? c.award,
+              tag: local?.tag ?? c.tag,
+              size: local?.size ?? c.size,
+              ring: local?.ring,
+            };
+          },
+        ) as WorkClip[];
+        galleryCache = next;
+        setClips(next);
       } catch {
         /* 本地清单 */
       }

@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
     const displayName = String(body.display_name ?? "").trim();
     const studentId = body.student_id ? String(body.student_id).trim() : null;
     const classId = body.class_id ? String(body.class_id).trim() : null;
+    const typeTag = body.type_tag ? String(body.type_tag).trim() : null;
 
     if (!username || !password || !displayName) {
       return NextResponse.json(
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       display_name: displayName,
       student_id: studentId,
       class_id: classId,
+      type_tag: typeTag,
     });
     return NextResponse.json({ data: user }, { status: 201 });
   } catch (e) {

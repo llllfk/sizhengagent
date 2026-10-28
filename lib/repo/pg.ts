@@ -7,6 +7,7 @@ import type {
   QaEscalation,
   QuestionType,
   StudentProfile,
+  StudentTypeTag,
 } from "@/types";
 import type {
   LayeredTask,
@@ -14,7 +15,13 @@ import type {
   VideoProject,
   WorkArchive,
 } from "@/lib/content/taskTypes";
-import type { StudentTypeTag } from "@/types";
+import {
+  TYPE_RADAR_SHAPE,
+  TYPE_TAGS,
+  isFormedType,
+  typeDistOf,
+  type FormedTypeTag,
+} from "@/lib/content/typeTags";
 
 function asStringArray(v: unknown): string[] {
   if (Array.isArray(v)) return v.map(String);
@@ -165,39 +172,74 @@ export async function pgStudentActivity(
   };
 }
 
-/** 由真实活动推导雷达 0–100 */
+/** 由分型轮廓 + 真实活动推导雷达 0–100 */
 export function buildActivityRadarAxes(input: {
   type_tag: string;
   cognition_level: number;
   weak_points: string[];
   activity: StudentActivity;
 }) {
-  const clamp = (n: number) => Math.max(12, Math.min(98, Math.round(n)));
-  const tag = input.type_tag;
   const a = input.activity;
-  const typeBoost = (t: string) => (tag === t ? 14 : 0);
+  const formed = isFormedType(input.type_tag);
+  const ready =
+    a.qa_sessions +
+      a.qa_rounds +
+      a.qa_escalated +
+      a.task_done +
+      a.works_count +
+      (a.quiz_last ? 1 : 0) >
+    0;
+  const clamp = (n: number) => Math.max(8, Math.min(98, Math.round(n)));
+  const shape = formed ? TYPE_RADAR_SHAPE[input.type_tag] : null;
+  const typeBoost = (t: string) => (shape ? shape[t] ?? 0 : 0);
+  if (!formed && !ready) {
+    return [
+      { key: "expression", label: "表达", value: 8 },
+      { key: "creation", label: "创作", value: 8 },
+      { key: "experience", label: "体验", value: 8 },
+      { key: "deliberation", label: "思辨", value: 8 },
+      { key: "inquiry", label: "探究", value: 8 },
+      { key: "cognition", label: "认知", value: 8 },
+      { key: "practice", label: "实践", value: 8 },
+      { key: "focus", label: "短板补强", value: 8 },
+    ];
+  }
 
   return [
     {
       key: "expression",
       label: "表达",
       value: clamp(
-        28 + a.qa_sessions * 10 + a.qa_rounds * 3 + typeBoost("expression"),
+        18 + a.qa_sessions * 10 + a.qa_rounds * 3 + typeBoost("expression"),
       ),
     },
     {
       key: "creation",
       label: "创作",
-      value: clamp(26 + a.works_count * 22 + typeBoost("creation")),
+      value: clamp(16 + a.works_count * 22 + typeBoost("creation")),
     },
     {
       key: "experience",
       label: "体验",
       value: clamp(
-        26 +
+        16 +
           a.quiz_issues * 10 +
           (a.quiz_last ? 12 : 0) +
           typeBoost("experience"),
+      ),
+    },
+    {
+      key: "deliberation",
+      label: "思辨",
+      value: clamp(
+        16 + a.qa_rounds * 4 + a.qa_escalated * 10 + typeBoost("deliberation"),
+      ),
+    },
+    {
+      key: "inquiry",
+      label: "探究",
+      value: clamp(
+        16 + a.open_issues * 6 + a.quiz_issues * 8 + typeBoost("inquiry"),
       ),
     },
     {
@@ -226,10 +268,71 @@ export function buildActivityRadarAxes(input: {
   ];
 }
 
+export async function pgUpdateStudentType(
+  studentId: string,
+  typeTag: StudentTypeTag,
+) {
+  const r = await query(
+    `update student_profile
+     set type_tag=$2, updated_at=now()
+     where student_id=$1
+     returning student_id`,
+    [studentId, typeTag],
+  );
+  return r.rowCount ? studentId : null;
+}
+
+export async function pgFormPortraitIfReady(studentId: string) {
+  const base = await pgFindStudentBase(studentId);
+  if (!base) return null;
+  if (isFormedType(base.type_tag)) return base.type_tag;
+  const a = await pgStudentActivity(studentId);
+  const vid = await query<{ script: string | null; step: number }>(
+    `select script, step from video_project where student_id=$1`,
+    [studentId],
+  );
+  const hasVideo =
+    Boolean(vid.rows[0]?.script?.trim()) || Number(vid.rows[0]?.step ?? 1) >= 2;
+  const ready =
+    a.qa_sessions >= 1 ||
+    a.qa_rounds >= 1 ||
+    Boolean(a.quiz_last) ||
+    a.works_count >= 1 ||
+    a.task_done >= 1 ||
+    hasVideo;
+  if (!ready) return null;
+  const scores: Record<FormedTypeTag, number> = {
+    expression: a.qa_sessions * 2 + a.qa_rounds,
+    creation: a.works_count * 4 + (hasVideo ? 5 : 0),
+    experience: (a.quiz_last ? 3 : 0) + a.quiz_issues + a.task_done,
+    deliberation: a.qa_rounds + a.qa_escalated * 4,
+    inquiry: a.open_issues + a.quiz_issues * 2,
+  };
+  let best: FormedTypeTag = "expression";
+  let max = -1;
+  for (const k of TYPE_TAGS) {
+    if (scores[k] > max) {
+      max = scores[k];
+      best = k;
+    }
+  }
+  await query(
+    `update student_profile set type_tag=$2, updated_at=now() where student_id=$1`,
+    [studentId, best],
+  );
+  return best;
+}
+
 export async function pgFindStudent(studentId: string) {
   const list = await pgListStudents();
-  const base = list.find((s) => s.student_id === studentId) ?? null;
+  let base = list.find((s) => s.student_id === studentId) ?? null;
   if (!base) return null;
+  if (!isFormedType(base.type_tag)) {
+    const formed = await pgFormPortraitIfReady(studentId);
+    if (formed && isFormedType(formed)) {
+      base = { ...base, type_tag: formed };
+    }
+  }
   const [issues, activity] = await Promise.all([
     pgListLearningIssues(studentId, "open"),
     pgStudentActivity(studentId),
@@ -374,7 +477,7 @@ async function ensureStudentProfileRow(studentId: string) {
   await query(
     `insert into student_profile
       (student_id, name, type_tag, cognition_level, weak_points, updated_at)
-     values ($1,$2,'expression',1,'[]'::jsonb,$3)
+     values ($1,$2,'untyped',1,'[]'::jsonb,$3)
      on conflict (student_id) do nothing`,
     [studentId, studentId, now],
   );
@@ -481,6 +584,12 @@ export async function pgApplyQuizResult(input: {
     });
   }
 
+  try {
+    await pgFormPortraitIfReady(input.student_id);
+  } catch (e) {
+    console.error("[quiz] portrait skipped", e);
+  }
+
   return {
     ok: true as const,
     weak_points: merged,
@@ -503,7 +612,7 @@ export type PgSession = {
   q_type: QuestionType;
   question: string;
   round: number;
-  followup_chain: Array<{ role: "ai" | "student"; content: string }>;
+  followup_chain: Array<{ role: "ai" | "student" | "teacher"; content: string }>;
   status: "open" | "resolved" | "escalated";
   coze_conversation_id?: string | null;
 };
@@ -532,6 +641,7 @@ export async function pgCreateSession(input: {
   );
   try {
     await pgTouchQaStats(input.student_id, { sessions: 1 });
+    await pgFormPortraitIfReady(input.student_id);
   } catch (e) {
     console.error("[qa] touch stats failed", e);
   }
@@ -612,6 +722,7 @@ export async function pgAppendFollowup(
   );
   try {
     await pgTouchQaStats(session.student_id, { rounds: 1 });
+    await pgFormPortraitIfReady(session.student_id);
   } catch (e) {
     console.error("[qa] touch rounds failed", e);
   }
@@ -689,23 +800,136 @@ export async function pgCreateEscalation(input: {
   };
 }
 
-export async function pgListEscalations() {
-  const r = await query<{
-    escalation_id: string;
-    session_id: string;
-    student_id: string;
-    summary: string;
-    teacher_status: QaEscalation["teacher_status"];
-    created_at: Date;
-  }>("select * from qa_escalation order by created_at desc");
-  return r.rows.map((row) => ({
+type EscalationRow = {
+  escalation_id: string;
+  session_id: string;
+  student_id: string;
+  summary: string;
+  teacher_status: QaEscalation["teacher_status"];
+  created_at: Date;
+  teacher_reply?: string | null;
+  teacher_name?: string | null;
+  teacher_replied_at?: Date | null;
+  question?: string | null;
+  followup_chain?: unknown;
+  q_type?: string | null;
+  profile_name?: string | null;
+  class_name?: string | null;
+};
+
+function parseChain(raw: unknown): Array<{ role: string; content: string }> {
+  const chain = (
+    Array.isArray(raw)
+      ? raw
+      : typeof raw === "string"
+        ? JSON.parse(raw)
+        : []
+  ) as Array<{ role?: string; content?: string }>;
+  return chain
+    .filter((c) => c && (c.content || c.role))
+    .map((c) => ({
+      role: String(c.role ?? "ai"),
+      content: String(c.content ?? ""),
+    }));
+}
+
+function mapEscalation(row: EscalationRow) {
+  const chain = parseChain(row.followup_chain);
+  const firstStudent = chain.find((c) => c.role === "student")?.content;
+  return {
     escalation_id: row.escalation_id,
     session_id: row.session_id,
     student_id: row.student_id,
+    student_name: row.profile_name ? String(row.profile_name) : undefined,
+    class_name: row.class_name ? String(row.class_name) : undefined,
+    q_type: row.q_type ? String(row.q_type) : undefined,
     summary: row.summary,
     teacher_status: row.teacher_status,
     created_at: new Date(row.created_at).toISOString(),
-  }));
+    teacher_reply: row.teacher_reply ? String(row.teacher_reply) : undefined,
+    teacher_name: row.teacher_name ? String(row.teacher_name) : undefined,
+    teacher_replied_at: row.teacher_replied_at
+      ? new Date(row.teacher_replied_at).toISOString()
+      : undefined,
+    question:
+      (row.question ? String(row.question) : "") || firstStudent || undefined,
+    followup_chain: chain,
+  };
+}
+
+const ESCALATION_SELECT = `
+  select e.*,
+         s.question,
+         s.followup_chain,
+         s.q_type,
+         p.name as profile_name,
+         c.name as class_name
+    from qa_escalation e
+    left join qa_session s on s.session_id = e.session_id
+    left join student_profile p on p.student_id = e.student_id
+    left join class_group c on c.class_id = p.class_id
+`;
+
+export async function pgListEscalations(studentId?: string) {
+  const r = studentId
+    ? await query<EscalationRow>(
+        `${ESCALATION_SELECT}
+         where e.student_id=$1
+         order by e.created_at desc`,
+        [studentId],
+      )
+    : await query<EscalationRow>(
+        `${ESCALATION_SELECT}
+         order by e.created_at desc`,
+      );
+  return r.rows.map(mapEscalation);
+}
+
+export async function pgReplyEscalation(input: {
+  escalation_id: string;
+  reply: string;
+  teacher_name: string;
+}) {
+  const text = input.reply.trim();
+  if (!text) return null;
+  const now = new Date().toISOString();
+  const r = await query<EscalationRow>(
+    `update qa_escalation
+     set teacher_reply=$2,
+         teacher_name=$3,
+         teacher_replied_at=$4::timestamptz,
+         teacher_status = case
+           when teacher_status = 'pending' then 'accepted'
+           else teacher_status
+         end,
+         updated_at=$4::timestamptz
+     where escalation_id=$1
+     returning *`,
+    [input.escalation_id, text, input.teacher_name, now],
+  );
+  const row = r.rows[0];
+  if (!row) return null;
+
+  const session = await pgGetSession(row.session_id);
+  if (session) {
+    session.followup_chain.push({
+      role: "teacher",
+      content: `【教师在线答复 · ${input.teacher_name}】\n${text}`,
+    });
+    await query(
+      `update qa_session
+       set followup_chain=$2::jsonb, updated_at=now()
+       where session_id=$1`,
+      [session.session_id, JSON.stringify(session.followup_chain)],
+    );
+  }
+
+  const joined = await query<EscalationRow>(
+    `${ESCALATION_SELECT}
+     where e.escalation_id=$1`,
+    [input.escalation_id],
+  );
+  return joined.rows[0] ? mapEscalation(joined.rows[0]) : mapEscalation(row);
 }
 
 export async function pgUpdateEscalationStatus(
@@ -753,11 +977,8 @@ export async function pgWorkbenchStats() {
     pending_escalations: Number(esc.rows[0]?.c ?? 0),
     open_sessions: Number(sess.rows[0]?.c ?? 0),
     students: students.length,
-    type_dist: {
-      expression: students.filter((s) => s.type_tag === "expression").length,
-      creation: students.filter((s) => s.type_tag === "creation").length,
-      experience: students.filter((s) => s.type_tag === "experience").length,
-    },
+    type_dist: typeDistOf(students),
+    untyped: students.filter((s) => !isFormedType(s.type_tag)).length,
   };
 }
 
@@ -765,7 +986,10 @@ export async function pgWorkbenchStats() {
 
 export async function pgListTopics(): Promise<ForumTopic[]> {
   const r = await query(
-    `select * from forum_topic order by pinned desc, hot desc, created_at desc`,
+    `select * from forum_topic
+     order by hot desc,
+              coalesce(updated_at, created_at) desc,
+              created_at desc`,
   );
   return r.rows.map(mapTopic);
 }
@@ -797,7 +1021,7 @@ function mapTopic(row: Record<string, unknown>): ForumTopic {
 
 export async function pgListReplies(topicId: string): Promise<ForumReply[]> {
   const r = await query(
-    `select * from forum_reply where topic_id=$1 order by created_at asc`,
+    `select * from forum_reply where topic_id=$1 order by created_at desc`,
     [topicId],
   );
   return r.rows.map((row) => ({
@@ -897,9 +1121,49 @@ export async function pgAddReply(input: {
   return reply;
 }
 
+export async function pgGetReply(replyId: string): Promise<ForumReply | null> {
+  const r = await query(`select * from forum_reply where reply_id=$1`, [
+    replyId,
+  ]);
+  const row = r.rows[0];
+  if (!row) return null;
+  return {
+    reply_id: String(row.reply_id),
+    topic_id: String(row.topic_id),
+    author_id: String(row.author_id),
+    author_name: String(row.author_name),
+    author_role: row.author_role as ForumReply["author_role"],
+    content: String(row.content),
+    created_at: new Date(row.created_at as Date).toISOString(),
+  };
+}
+
+/** 删除跟帖并回写议题计数；返回被删跟帖 */
+export async function pgDeleteReply(replyId: string) {
+  const reply = await pgGetReply(replyId);
+  if (!reply) return null;
+  await query(`delete from forum_reply where reply_id=$1`, [replyId]);
+  await query(
+    `update forum_topic
+     set reply_count = greatest(0, reply_count - 1),
+         updated_at = now()
+     where topic_id=$1`,
+    [reply.topic_id],
+  );
+  return reply;
+}
+
+/** 删除议题（跟帖由外键 CASCADE） */
+export async function pgDeleteTopic(topicId: string) {
+  const topic = await pgGetTopic(topicId);
+  if (!topic) return null;
+  await query(`delete from forum_topic where topic_id=$1`, [topicId]);
+  return topic;
+}
+
 export async function pgListHighlights(): Promise<HighlightItem[]> {
   const r = await query(
-    `select * from highlight order by pinned desc, created_at desc`,
+    `select * from highlight order by created_at desc`,
   );
   return r.rows.map((row) => ({
     highlight_id: String(row.highlight_id),
@@ -928,7 +1192,7 @@ export async function pgPinHighlight(highlightId: string, pinned = true) {
 
 export async function pgRefluxHighlight(highlightId: string) {
   const r = await query(
-    `update highlight set refluxed=true, pinned=true, updated_at=now()
+    `update highlight set refluxed=true, updated_at=now()
      where highlight_id=$1 returning *`,
     [highlightId],
   );
@@ -981,7 +1245,7 @@ export async function pgPromoteTopicToHighlight(topicId: string) {
 /* ---------- tasks / video / works ---------- */
 
 const TASK_TEMPLATES: Record<
-  StudentTypeTag,
+  FormedTypeTag,
   { title: string; type: LayeredTask["type"]; brief: string }
 > = {
   expression: {
@@ -1001,6 +1265,18 @@ const TASK_TEMPLATES: Record<
     type: "field_trip",
     brief:
       "观察一处真实服务场景，记录「安全—秩序—温度」三要素，提交观察笔记。",
+  },
+  deliberation: {
+    title: "议题论证：把问题辩透",
+    type: "interview",
+    brief:
+      "选一条客舱争议观点，写论证帖：这个观点成不成立、有何漏洞、谁更合理；准备课堂主辩/质询。",
+  },
+  inquiry: {
+    title: "案例深挖：把问题挖深",
+    type: "field_trip",
+    brief:
+      "从客舱案例库再挖一条新问题，追问为什么/怎么来的/还有可能吗，形成问题清单并尝试考证型脚本。",
   },
 };
 
@@ -1034,8 +1310,15 @@ export async function pgAssignTask(
   typeTag?: StudentTypeTag,
 ) {
   const profile = await pgFindStudent(studentId);
-  const tag = typeTag || profile?.type_tag || "creation";
-  const tpl = TASK_TEMPLATES[tag];
+  const tag = typeTag || profile?.type_tag || "untyped";
+  const tpl = isFormedType(tag)
+    ? TASK_TEMPLATES[tag]
+    : {
+        title: "先参与课堂，再生成分层任务",
+        type: "field_trip" as LayeredTask["type"],
+        brief:
+          "完成一次学伴答疑、课中闯关或短视频工坊后，系统会生成思维画像并推送适配任务。",
+      };
   const now = new Date().toISOString();
   const task: LayeredTask = {
     task_id: `task_${Date.now()}`,
@@ -1082,6 +1365,13 @@ export async function pgUpdateTask(
     `update layered_task set status=$2, progress=$3, updated_at=$4 where task_id=$1`,
     [taskId, task.status, task.progress, task.updated_at],
   );
+  if (task.progress > 0) {
+    try {
+      await pgFormPortraitIfReady(task.student_id);
+    } catch (e) {
+      console.error("[task] portrait skipped", e);
+    }
+  }
   return task;
 }
 
@@ -1158,6 +1448,13 @@ export async function pgSaveVideoStep(
       project.updated_at,
     ],
   );
+  if (project.script || project.step >= 2) {
+    try {
+      await pgFormPortraitIfReady(studentId);
+    } catch (e) {
+      console.error("[video] portrait skipped", e);
+    }
+  }
   return project;
 }
 
@@ -1188,6 +1485,11 @@ export async function pgArchiveWork(input: {
       work.created_at,
     ],
   );
+  try {
+    await pgFormPortraitIfReady(input.student_id);
+  } catch (e) {
+    console.error("[work] portrait skipped", e);
+  }
   return work;
 }
 
@@ -1298,6 +1600,7 @@ export async function pgAnalyticsBundle() {
     recent_issues,
     week,
     student_count: wb.students,
+    untyped: wb.untyped,
     type_dist: wb.type_dist,
     task_status: taskStatus,
     task_completion_rate: completionRate,
@@ -1353,7 +1656,7 @@ export async function pgWeeklyReportDraft() {
       a.week.escalations_7d > 0
         ? "对近 7 日答疑转接条目安排一次 15 分钟专题答疑。"
         : "引导学员在学伴中多轮追问，形成可转接的疑难样本。",
-      "创作型学员推进短视频工坊至成片归档，形成可展示成果。",
+      "创作型推进短视频工坊；思辨型写论证帖把问题辩透；探究型从案例库挖深问题清单。",
     ],
     status: "draft" as const,
   };

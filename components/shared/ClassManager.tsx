@@ -165,8 +165,8 @@ export function ClassManager() {
             onChange={(e) => setForm({ ...form, remark: e.target.value })}
           />
         </div>
-        <Button type="button" disabled={busy} onClick={() => void create()}>
-          创建班级
+        <Button type="button" loading={busy} onClick={() => void create()}>
+          {busy ? "创建中…" : "创建班级"}
         </Button>
       </section>
 
@@ -218,10 +218,10 @@ export function ClassManager() {
               <Button
                 type="button"
                 variant="ghost"
-                disabled={busy}
+                loading={busy}
                 onClick={() => void remove(active)}
               >
-                删除班级
+                {busy ? "删除中…" : "删除班级"}
               </Button>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
@@ -242,8 +242,8 @@ export function ClassManager() {
                 onChange={(e) => setEdit({ ...edit, remark: e.target.value })}
               />
             </div>
-            <Button type="button" disabled={busy} onClick={() => void saveMeta()}>
-              保存信息
+            <Button type="button" loading={busy} onClick={() => void saveMeta()}>
+              {busy ? "保存中…" : "保存信息"}
             </Button>
           </section>
         ) : (

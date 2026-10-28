@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ChangePasswordForm } from "@/components/shared/ChangePasswordForm";
 import { Panel } from "@/components/ui/Card";
@@ -9,6 +10,8 @@ import {
   buildStudentRadarAxes,
   type RadarAxis,
 } from "@/components/shared/ProfileRadar";
+import { TypeGuide } from "@/components/shared/TypeGuide";
+import { TYPE_LABEL, isFormedType } from "@/lib/content/typeTags";
 
 type LearningIssue = {
   issue_id: string;
@@ -53,11 +56,7 @@ type Profile = {
   radar_axes?: RadarAxis[];
 };
 
-const typeLabel: Record<string, string> = {
-  expression: "表达型",
-  creation: "创作型",
-  experience: "体验型",
-};
+const typeLabel = TYPE_LABEL as Record<string, string>;
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -85,7 +84,7 @@ export default function ProfilePage() {
           我的画像
         </h1>
         <p className="max-w-xl text-sm text-[var(--muted)]">
-          雷达与问题清单均来自答疑、课中闯关、任务与作品的真实回写。
+          画像不预置。完成答疑、闯关、工坊或任务后，系统才生成五型标签与雷达。
         </p>
       </header>
 
@@ -120,6 +119,35 @@ export default function ProfilePage() {
                     </span>
                   </p>
                 </div>
+                {!isFormedType(profile.type_tag) ? (
+                  <div className="portrait-pending relative overflow-hidden rounded-sm border border-[var(--orange)]/40 bg-gradient-to-r from-[var(--orange-fog)] to-white px-4 py-4">
+                    <span className="type-beacon-ring" aria-hidden />
+                    <p className="text-[10px] tracking-[0.28em] text-[var(--orange)]">
+                      画像待生成
+                    </p>
+                    <p className="mt-1 font-display text-2xl text-[var(--orange-deep)]">
+                      先上课，再分型
+                    </p>
+                    <p className="mt-2 text-xs leading-6 text-[var(--muted)]">
+                      任选一次真实操作后，五型灯牌与雷达才会亮起。
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[
+                        { href: "/companion", label: "学伴答疑" },
+                        { href: "/interactive", label: "课中五式" },
+                        { href: "/video-workshop", label: "短视频工坊" },
+                      ].map((x) => (
+                        <Link
+                          key={x.href}
+                          href={x.href}
+                          className="rounded-sm border border-[var(--orange)]/35 bg-white px-3 py-1.5 text-xs text-[var(--orange-deep)] transition hover:border-[var(--orange)] hover:shadow-[0_8px_20px_rgba(232,120,47,0.18)]"
+                        >
+                          {x.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <TypeBeaconBoard active={profile.type_tag} mode="personal" />
 
                 {act ? (
@@ -217,17 +245,33 @@ export default function ProfilePage() {
             )}
           </Panel>
 
+          <TypeGuide highlight={profile.type_tag} />
+
           <Panel title="分层提示" hint="与⑥分层任务、⑤课中五式联动">
             <p className="text-sm leading-7 text-[var(--muted)]">
-              你更偏
-              <strong className="mx-1 text-[var(--orange-deep)]">
-                {typeLabel[profile.type_tag] ?? profile.type_tag}
-              </strong>
-              ：雷达短板轴会随
-              <strong className="mx-1 text-[var(--orange-deep)]">答疑转接</strong>
-              与
-              <strong className="mx-1 text-[var(--orange-deep)]">课中闯关</strong>
-              真实回写变化；教师「学情看板 / 周报」同步读取同一库。
+              {isFormedType(profile.type_tag) ? (
+                <>
+                  你更偏
+                  <strong className="mx-1 text-[var(--orange-deep)]">
+                    {typeLabel[profile.type_tag] ?? profile.type_tag}
+                  </strong>
+                  ：雷达短板轴会随
+                  <strong className="mx-1 text-[var(--orange-deep)]">答疑转接</strong>
+                  与
+                  <strong className="mx-1 text-[var(--orange-deep)]">课中闯关</strong>
+                  真实回写变化；教师「学情看板 / 周报」同步读取同一库。
+                </>
+              ) : (
+                <>
+                  画像尚未形成。完成
+                  <strong className="mx-1 text-[var(--orange-deep)]">学伴答疑</strong>
+                  、
+                  <strong className="mx-1 text-[var(--orange-deep)]">课中闯关</strong>
+                  或
+                  <strong className="mx-1 text-[var(--orange-deep)]">短视频工坊</strong>
+                  后，系统会按真实行为生成五型之一，并推送对应分层任务。
+                </>
+              )}
             </p>
           </Panel>
         </>

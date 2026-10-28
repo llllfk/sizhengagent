@@ -15,7 +15,7 @@ export default function AccountsPage() {
           可修改本人与任意账号的名称、登录账号；新建学生时可直接分班。班级增删改请走「班级管理」。
         </p>
       </header>
-      <Panel title="账号管理" hint="需教师身份登录后操作">
+      <Panel title="账号管理">
         <AccountManager />
       </Panel>
     </div>

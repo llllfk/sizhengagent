@@ -316,24 +316,28 @@ export function collectScriptLine(input: {
   return room;
 }
 
-export function generateScript(roomId: string) {
+export function scriptLineDigest(room: InteractiveRoom) {
+  return room.script_lines
+    .map((l, i) => `${i + 1}. ${l.name}：${l.sentence}`)
+    .join("\n");
+}
+
+export function generateScript(roomId: string, body?: string) {
   const room = getRoom(roomId);
   if (!room || room.mode !== "script") return null;
-  const lines = room.script_lines.map(
-    (l, i) => `${i + 1}. ${l.name}：${l.sentence}`,
-  );
-  room.script_body = [
-    `【主题】${room.theme}`,
-    "【人物】乘务长 / 新乘务员 / 旅客代表",
-    "【冲突】服务边界与旅客诉求碰撞",
-    "【转折】以人民至上原则重估现场选择",
-    "【结局】形成可执行客舱预案",
-    "",
-    "—— 接龙素材 ——",
-    ...(lines.length ? lines : ["（尚无接龙，已生成结构框架）"]),
-    "",
-    "—— AI生成内容，供讨论参考",
-  ].join("\n");
+  const lines = scriptLineDigest(room);
+  room.script_body =
+    body?.trim() ||
+    [
+      `【主题】${room.theme}`,
+      "【人物】乘务长 / 新乘务员 / 旅客代表",
+      "【冲突】服务边界与旅客诉求碰撞",
+      "【转折】以人民至上原则重估现场选择",
+      "【结局】形成可执行客舱预案：先指令、后温度、边界内给双路径",
+      "",
+      "—— 接龙素材 ——",
+      lines || "（尚无接龙，已生成结构框架）",
+    ].join("\n");
   return room;
 }
 

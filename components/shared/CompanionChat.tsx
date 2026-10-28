@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "@/components/shared/useSession";
 import { writeTabPortal } from "@/lib/auth/portalClient";
@@ -9,7 +9,7 @@ import { SAFETY_DEMO_SAMPLES } from "@/lib/ai";
 import { DEMO_PROMPTS } from "@/lib/content/qaEngine";
 
 type Msg = {
-  role: "user" | "assistant" | "system";
+  role: "user" | "assistant" | "system" | "teacher";
   content: string;
 };
 
@@ -36,8 +36,16 @@ function goLogin() {
   window.location.assign(`/?portal=student&next=${next}`);
 }
 
+async function readJson(res: Response) {
+  try {
+    return (await res.json()) as Record<string, unknown>;
+  } catch {
+    return {} as Record<string, unknown>;
+  }
+}
+
 export function CompanionChat() {
-  const { user, loading: sessionLoading, isStudent } = useSession();
+  const { user, loading: sessionLoading, isStudent, refresh } = useSession();
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [qType, setQType] = useState<string | null>(null);
@@ -48,17 +56,86 @@ export function CompanionChat() {
   const [hits, setHits] = useState<RetrievalHit[]>([]);
   const [scanning, setScanning] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
+  const sendingRef = useRef(false);
+  const hadStudentRef = useRef(false);
 
-  const needLogin = !sessionLoading && !isStudent;
+  // 发送中或本页曾确认过学员身份时，避免瞬时会话抖动误踢登录
+  const needLogin =
+    !sessionLoading && !isStudent && !sendingRef.current && !hadStudentRef.current;
 
   useEffect(() => {
     writeTabPortal("student");
   }, []);
 
+  useEffect(() => {
+    if (isStudent) hadStudentRef.current = true;
+  }, [isStudent]);
+
+  useEffect(() => {
+    if (!isStudent || sessionId) return;
+    void (async () => {
+      try {
+        const res = await fetch("/api/qa/inbox", { credentials: "include" });
+        const json = await readJson(res);
+        const list = ((json.data as unknown[]) ?? []) as Array<{
+          teacher_reply?: string;
+          teacher_name?: string;
+          question?: string;
+          summary?: string;
+        }>;
+        if (!list.length) return;
+        setMessages((m) => {
+          if (m.some((x) => x.role === "teacher")) return m;
+          return [
+            ...m,
+            ...list.slice(0, 3).map((e) => ({
+              role: "teacher" as const,
+              content: `【教师在线答复${e.teacher_name ? ` · ${e.teacher_name}` : ""}】${e.question || e.summary ? `\n问：${e.question || e.summary}` : ""}\n${e.teacher_reply}`,
+            })),
+          ];
+        });
+      } catch {
+        /* 无答复时忽略 */
+      }
+    })();
+  }, [isStudent, sessionId]);
+
+  useEffect(() => {
+    if (!escalated || !sessionId) return;
+    const pull = async () => {
+      try {
+        const res = await fetch(`/api/qa/sessions/${sessionId}`, {
+          credentials: "include",
+        });
+        const json = await readJson(res);
+        const data = json.data as
+          | { followup_chain?: Array<{ role: string; content: string }> }
+          | undefined;
+        const chain = data?.followup_chain ?? [];
+        const teacherNotes = chain
+          .filter((c) => c.role === "teacher")
+          .map((c) => c.content);
+        if (!teacherNotes.length) return;
+        setMessages((m) => {
+          const have = new Set(m.map((x) => x.content));
+          const add = teacherNotes
+            .filter((c) => !have.has(c))
+            .map((content) => ({ role: "teacher" as const, content }));
+          return add.length ? [...m, ...add] : m;
+        });
+      } catch {
+        /* 轮询失败不打断课堂 */
+      }
+    };
+    void pull();
+    const t = window.setInterval(() => void pull(), 8000);
+    return () => window.clearInterval(t);
+  }, [escalated, sessionId]);
+
   // 未登录回登录页；略延迟，避免与刚写入的 Cookie / me 竞态误踢
   useEffect(() => {
     if (!needLogin) return;
-    const t = window.setTimeout(() => goLogin(), 400);
+    const t = window.setTimeout(() => goLogin(), 800);
     return () => window.clearTimeout(t);
   }, [needLogin]);
 
@@ -74,15 +151,30 @@ export function CompanionChat() {
     setFlashKey((k) => k + 1);
   }
 
+  async function handleUnauthorized(): Promise<boolean> {
+    const next = await refresh();
+    if (next?.role === "student") return false;
+    setMessages((m) => [
+      ...m,
+      {
+        role: "system",
+        content: "登录已失效，请重新登录后再发送。正在前往登录页…",
+      },
+    ]);
+    window.setTimeout(() => goLogin(), 1200);
+    return true;
+  }
+
   async function send(textOverride?: string) {
     const text = (textOverride ?? input).trim();
     if (!text || loading || escalated) return;
 
-    if (!isStudent) {
+    if (!isStudent && !hadStudentRef.current) {
       goLogin();
       return;
     }
 
+    sendingRef.current = true;
     setLoading(true);
     setSafety(null);
     setScanning(true);
@@ -97,29 +189,43 @@ export function CompanionChat() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: text }),
         });
-        const json = await res.json();
+        const json = await readJson(res);
         if (res.status === 401 || json.code === "UNAUTHORIZED") {
-          goLogin();
+          setMessages((m) => m.slice(0, -1));
+          setInput(text);
+          await handleUnauthorized();
           return;
         }
-        if (res.status === 422 && json.safety) {
+        const safetyBody = json.safety as SafetyBanner | undefined;
+        if (res.status === 422 && safetyBody) {
           setSafety({
-            gate: json.safety.gate,
-            reason: json.safety.reason,
-            flagged: json.safety.flagged ?? [],
+            gate: safetyBody.gate,
+            reason: safetyBody.reason,
+            flagged: safetyBody.flagged ?? [],
           });
           setMessages((m) => m.slice(0, -1));
           setInput(text);
           setScanning(false);
           return;
         }
-        if (!res.ok) throw new Error(json.error || "发起失败");
-        setSessionId(json.data.session_id);
-        setQType(json.data.q_type);
-        applyRetrieval(json.data.retrieval);
+        if (!res.ok) throw new Error(String(json.error || "发起失败"));
+        const data = json.data as
+          | {
+              session_id?: string;
+              q_type?: string;
+              prompt?: string;
+              retrieval?: RetrievalHit[];
+            }
+          | undefined;
+        if (!data?.session_id || !data.prompt) {
+          throw new Error("学伴未返回有效内容，请重试");
+        }
+        setSessionId(data.session_id);
+        setQType(data.q_type ?? null);
+        applyRetrieval(data.retrieval);
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: json.data.prompt },
+          { role: "assistant", content: data.prompt as string },
         ]);
       } else {
         const res = await fetch("/api/qa/followup", {
@@ -128,36 +234,49 @@ export function CompanionChat() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ session_id: sessionId, answer: text }),
         });
-        const json = await res.json();
+        const json = await readJson(res);
         if (res.status === 401 || json.code === "UNAUTHORIZED") {
-          goLogin();
+          setMessages((m) => m.slice(0, -1));
+          setInput(text);
+          await handleUnauthorized();
           return;
         }
-        if (res.status === 422 && json.safety) {
+        const safetyBody = json.safety as SafetyBanner | undefined;
+        if (res.status === 422 && safetyBody) {
           setSafety({
-            gate: json.safety.gate,
-            reason: json.safety.reason,
-            flagged: json.safety.flagged ?? [],
+            gate: safetyBody.gate,
+            reason: safetyBody.reason,
+            flagged: safetyBody.flagged ?? [],
           });
           setMessages((m) => m.slice(0, -1));
           setInput(text);
           setScanning(false);
           return;
         }
-        if (!res.ok) throw new Error(json.error || "追问失败");
-        applyRetrieval(json.data.retrieval);
+        if (!res.ok) throw new Error(String(json.error || "追问失败"));
+        const data = json.data as
+          | {
+              prompt?: string;
+              retrieval?: RetrievalHit[];
+              escalate_hint?: boolean;
+            }
+          | undefined;
+        if (!data?.prompt) {
+          throw new Error("学伴未返回有效内容，请重试");
+        }
+        applyRetrieval(data.retrieval);
         setMessages((m) => [
           ...m,
-          { role: "assistant", content: json.data.prompt },
+          { role: "assistant", content: data.prompt as string },
         ]);
-        if (json.data.escalate_hint) {
+        if (data.escalate_hint) {
           setEscalated(true);
           setMessages((m) => [
             ...m,
             {
               role: "system",
               content:
-                "已生成疑难清单并自动推送给老师。老师将在专题答疑中继续引导，你可新开一轮提问。",
+                "已转给老师。老师可在线答复；本页会自动同步。也可新开一轮继续问学伴。",
             },
           ]);
         }
@@ -167,10 +286,11 @@ export function CompanionChat() {
         ...m,
         {
           role: "assistant",
-          content: e instanceof Error ? e.message : "请求失败",
+          content: e instanceof Error ? e.message : "请求失败，请稍后重试",
         },
       ]);
     } finally {
+      sendingRef.current = false;
       setLoading(false);
       setScanning(false);
     }
@@ -277,8 +397,8 @@ export function CompanionChat() {
                   </span>
                 ))}
               </div>
-              <p className="text-sm text-[var(--muted)]">
-                点选示例开场；右侧将闪现知识库 / 客舱案例命中。
+              <p className="text-sm font-medium text-[var(--muted)]">
+                常见课堂问题
               </p>
               <div className="flex flex-col gap-2">
                 {DEMO_PROMPTS.map((p) => (
@@ -324,8 +444,15 @@ export function CompanionChat() {
                     "mr-4 whitespace-pre-wrap border border-[var(--line)] bg-white text-[var(--ink)]",
                   m.role === "system" &&
                     "border border-dashed border-[var(--orange)]/50 bg-[var(--orange-fog)] text-xs text-[var(--orange-deep)]",
+                  m.role === "teacher" &&
+                    "mr-4 whitespace-pre-wrap border border-[var(--orange)]/40 bg-[var(--orange-fog)] text-[var(--ink)]",
                 )}
               >
+                {m.role === "teacher" ? (
+                  <p className="mb-1 text-[10px] tracking-[0.2em] text-[var(--orange-deep)]">
+                    教师在线答复
+                  </p>
+                ) : null}
                 {m.content}
               </div>
             ))
@@ -355,9 +482,10 @@ export function CompanionChat() {
           <Button
             type="button"
             onClick={() => void send()}
-            disabled={loading || escalated}
+            loading={loading}
+            disabled={escalated}
           >
-            {loading ? "检索中" : "发送"}
+            {loading ? "检索中…" : "发送"}
           </Button>
         </div>
       </div>

@@ -40,10 +40,16 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  font-size: 18px;
+}
+
 body {
   color: var(--ink);
   background: var(--paper);
   font-family: var(--font-body), "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 /* —— 全站滚动条 · 暖橘细轨 —— */
@@ -127,6 +133,93 @@ body {
   box-shadow:
     0 12px 40px rgba(196, 92, 26, 0.08),
     0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* —— 研讨论坛：双栏定高，舱内滚动 —— */
+.forum-hero {
+  position: relative;
+}
+
+.forum-hero-glow {
+  pointer-events: none;
+  position: absolute;
+  right: -2rem;
+  top: -3rem;
+  height: 10rem;
+  width: 14rem;
+  border-radius: 9999px;
+  background: rgba(246, 199, 154, 0.55);
+  filter: blur(36px);
+  animation: embark-pulse-b 3.2s ease-in-out infinite;
+}
+
+.forum-stage {
+  /* 扣除顶栏 / 故事条 / 页眉后的视口高度，避免右侧把整页撑很长 */
+  height: min(68dvh, 720px);
+  min-height: 420px;
+}
+
+.forum-rail,
+.forum-cabin {
+  height: 100%;
+}
+
+.forum-rail-scroll,
+.forum-thread {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(232, 120, 47, 0.45) transparent;
+}
+
+.forum-rail-scroll::-webkit-scrollbar,
+.forum-thread::-webkit-scrollbar {
+  width: 6px;
+}
+
+.forum-rail-scroll::-webkit-scrollbar-thumb,
+.forum-thread::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(232, 120, 47, 0.4);
+}
+
+.forum-topic-card-on {
+  position: relative;
+}
+
+.forum-topic-card-on::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55rem;
+  bottom: 0.55rem;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, var(--orange-soft), var(--orange-deep));
+}
+
+.forum-reply:hover {
+  border-color: rgba(232, 120, 47, 0.35);
+}
+
+@media (max-width: 1023px) {
+  .forum-stage {
+    height: auto;
+    min-height: 0;
+  }
+
+  .forum-rail {
+    max-height: 280px;
+  }
+
+  .forum-cabin {
+    height: min(58dvh, 560px);
+    min-height: 360px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .forum-hero-glow {
+    animation: none;
+  }
 }
 
 @keyframes drift-cloud {
@@ -391,6 +484,29 @@ body {
   white-space: nowrap;
 }
 
+.works-honor-chip-nation {
+  max-width: 260px;
+  border-color: rgba(196, 92, 26, 0.55);
+  background: linear-gradient(
+    105deg,
+    rgba(255, 236, 200, 0.96),
+    rgba(255, 255, 255, 0.98)
+  );
+  box-shadow: 0 8px 22px rgba(232, 120, 47, 0.22);
+}
+
+.works-honor-chip-award-nation,
+.works-honor-chip-nation .works-honor-chip-award {
+  padding: 0.18rem 0.5rem;
+  background: linear-gradient(105deg, #f0b429, #e8782f 55%, #c45c1a);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 168, 0.55) inset,
+    0 2px 8px rgba(196, 92, 26, 0.35);
+}
+
 .works-honor-chip-title {
   overflow: hidden;
   color: var(--ink);
@@ -428,8 +544,66 @@ body {
   animation: works-stamp-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+.works-stamp-nation {
+  --stamp-rot: -6deg;
+  min-width: 4.6rem;
+  padding: 0.5rem 0.75rem;
+  border: 2.5px solid #c45c1a;
+  background: linear-gradient(145deg, #ffe6a8 0%, #f6c79a 42%, #e8782f 100%);
+  color: #3d2a1a;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 0 0 3px rgba(255, 230, 168, 0.55),
+    0 10px 28px rgba(196, 92, 26, 0.35);
+  animation:
+    works-stamp-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    works-stamp-nation-pulse 2.4s ease-in-out 0.9s infinite;
+}
+
+.works-stamp-sat {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  z-index: 12;
+  min-width: 2.6rem;
+  padding: 0.2rem 0.35rem;
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  opacity: 1;
+  animation:
+    works-stamp-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+    works-stamp-nation-pulse 2.6s ease-in-out 0.7s infinite;
+}
+
+.works-pane-frame-nation {
+  box-shadow:
+    0 0 0 1.5px rgba(240, 180, 41, 0.85),
+    0 12px 28px rgba(196, 92, 26, 0.28);
+}
+
+.works-sat-nation {
+  z-index: 3;
+}
+
 .works-stamp:nth-child(2) {
   --stamp-rot: -8deg;
+}
+
+@keyframes works-stamp-nation-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(255, 230, 168, 0.45),
+      0 10px 28px rgba(196, 92, 26, 0.32);
+  }
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(255, 230, 168, 0.7),
+      0 14px 34px rgba(232, 120, 47, 0.42);
+  }
 }
 
 @keyframes works-honor-marquee {
@@ -1554,6 +1728,10 @@ body {
   filter: blur(18px);
   pointer-events: none;
   animation: embark-pulse-b 2.6s ease-in-out infinite;
+}
+
+.portrait-pending {
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes type-beacon-pulse {

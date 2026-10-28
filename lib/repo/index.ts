@@ -19,7 +19,15 @@ export class DbUnavailableError extends Error {
 async function requirePg() {
   if (!hasDb()) throw new DbUnavailableError("未配置 DATABASE_URL");
   const ok = await ensurePg();
-  if (!ok) throw new DbUnavailableError("数据库初始化失败");
+  if (!ok) {
+    // 再探一次：避免热更新后 schemaReady 脏失败挡住跟帖等写操作
+    try {
+      const { query } = await import("@/lib/db");
+      await query("select 1::int as n");
+    } catch {
+      throw new DbUnavailableError("数据库初始化失败");
+    }
+  }
 }
 
 export function dataSourceLabel() {
@@ -34,6 +42,14 @@ export async function findStudent(studentId: string) {
 export async function listStudents() {
   await requirePg();
   return pg.pgListStudents();
+}
+
+export async function updateStudentType(
+  studentId: string,
+  typeTag: StudentTypeTag,
+) {
+  await requirePg();
+  return pg.pgUpdateStudentType(studentId, typeTag);
 }
 
 export async function createSession(input: {
@@ -83,11 +99,14 @@ export async function listEscalations() {
   await requirePg();
   const list = await pg.pgListEscalations();
   const students = await pg.pgListStudents();
-  return list.map((e) => ({
-    ...e,
-    student_name:
-      students.find((s) => s.student_id === e.student_id)?.name ?? e.student_id,
-  }));
+  return list.map((e) => {
+    const stu = students.find((s) => s.student_id === e.student_id);
+    return {
+      ...e,
+      student_name: e.student_name || stu?.name || e.student_id,
+      class_name: e.class_name || stu?.class_name,
+    };
+  });
 }
 
 export async function updateEscalationStatus(
@@ -96,6 +115,25 @@ export async function updateEscalationStatus(
 ) {
   await requirePg();
   return pg.pgUpdateEscalationStatus(escalationId, status);
+}
+
+export async function replyEscalation(input: {
+  escalation_id: string;
+  reply: string;
+  teacher_name: string;
+}) {
+  await requirePg();
+  return pg.pgReplyEscalation(input);
+}
+
+export async function listStudentEscalations(studentId: string) {
+  await requirePg();
+  return pg.pgListEscalations(studentId);
+}
+
+export async function getQaSession(sessionId: string) {
+  await requirePg();
+  return pg.pgGetSession(sessionId);
 }
 
 export async function workbenchStats() {
@@ -128,6 +166,21 @@ export async function createTopic(
 export async function addReply(input: Parameters<typeof pg.pgAddReply>[0]) {
   await requirePg();
   return pg.pgAddReply(input);
+}
+
+export async function getReply(replyId: string) {
+  await requirePg();
+  return pg.pgGetReply(replyId);
+}
+
+export async function deleteReply(replyId: string) {
+  await requirePg();
+  return pg.pgDeleteReply(replyId);
+}
+
+export async function deleteTopic(topicId: string) {
+  await requirePg();
+  return pg.pgDeleteTopic(topicId);
 }
 
 export async function listHighlights() {

@@ -12,10 +12,10 @@ export default function EscalationsPage() {
           转接队列
         </h1>
         <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-          AI 把「真问题」送来，教师一键接受、排期专题答疑，体现人机协同。
+          左侧点开个案，右侧看完整提问与学伴对话，再写在线答复或排期专题答疑。
         </p>
       </header>
-      <Panel title="待办与流转" hint="每 8 秒自动刷新">
+      <Panel title="待办与流转" hint="在线答复会同步到学生学伴">
         <EscalationQueue />
       </Panel>
     </div>

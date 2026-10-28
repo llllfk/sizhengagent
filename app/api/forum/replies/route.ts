@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
 import { requireUser } from "@/lib/auth/session";
-import { addReply, listReplies } from "@/lib/repo";
+import { addReply, deleteReply, getReply, listReplies } from "@/lib/repo";
+
+function authorIdsOf(me: {
+  username: string;
+  student_id: string | null;
+}) {
+  return [me.student_id, me.username].filter(Boolean) as string[];
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,5 +48,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data: reply }, { status: 201 });
   } catch (e) {
     return jsonError(e, "跟帖失败");
+  }
+}
+
+/** DELETE ?reply_id= / body.reply_id — 仅跟帖人可删 */
+export async function DELETE(request: NextRequest) {
+  try {
+    const me = await requireUser();
+    const body =
+      request.headers.get("content-type")?.includes("json")
+        ? await request.json().catch(() => ({}))
+        : {};
+    const replyId = String(
+      request.nextUrl.searchParams.get("reply_id") ??
+        (body as { reply_id?: string }).reply_id ??
+        "",
+    ).trim();
+    if (!replyId) {
+      return NextResponse.json({ error: "reply_id 必填" }, { status: 400 });
+    }
+    const existing = await getReply(replyId);
+    if (!existing) {
+      return NextResponse.json({ error: "跟帖不存在" }, { status: 404 });
+    }
+    const mine = authorIdsOf(me);
+    if (!mine.includes(existing.author_id)) {
+      return NextResponse.json(
+        { error: "只能删除自己的跟帖" },
+        { status: 403 },
+      );
+    }
+    const deleted = await deleteReply(replyId);
+    return NextResponse.json({ data: deleted });
+  } catch (e) {
+    return jsonError(e, "删除跟帖失败");
   }
 }

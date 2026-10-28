@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "@/components/shared/useSession";
 import { cn } from "@/lib/utils";
+import { TYPE_LABEL } from "@/lib/content/typeTags";
 
 type Task = {
   task_id: string;
@@ -16,11 +17,7 @@ type Task = {
 };
 
 const statusLabel = { todo: "待开始", doing: "进行中", done: "已完成" };
-const typeLabel: Record<string, string> = {
-  expression: "表达型",
-  creation: "创作型",
-  experience: "体验型",
-};
+const typeLabel = TYPE_LABEL as Record<string, string>;
 
 export function TaskCenter() {
   const { user, studentId } = useSession();
@@ -85,10 +82,11 @@ export function TaskCenter() {
         <Button
           type="button"
           variant="ghost"
-          disabled={busy || !studentId}
+          loading={busy}
+          disabled={!studentId}
           onClick={() => void claimMore()}
         >
-          再领一项
+          {busy ? "领取中…" : "再领一项"}
         </Button>
       </div>
 
@@ -136,18 +134,18 @@ export function TaskCenter() {
                   <>
                     <Button
                       type="button"
-                      disabled={busy}
+                      loading={busy}
                       onClick={() => void bump(t, Math.min(100, t.progress + 30))}
                     >
-                      推进进度
+                      {busy ? "更新中…" : "推进进度"}
                     </Button>
                     <Button
                       type="button"
                       variant="ghost"
-                      disabled={busy}
+                      loading={busy}
                       onClick={() => void bump(t, 100)}
                     >
-                      标记完成
+                      {busy ? "更新中…" : "标记完成"}
                     </Button>
                   </>
                 ) : (
