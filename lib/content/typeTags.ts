@@ -94,8 +94,8 @@ export function emptyTypeDist(): TypeDist {
 export function typeDistOf(students: { type_tag: string }[]): TypeDist {
   const d = emptyTypeDist();
   for (const s of students) {
-    if (TYPE_TAGS.includes(s.type_tag as StudentTypeTag)) {
-      d[s.type_tag as StudentTypeTag] += 1;
+    if (isFormedType(s.type_tag)) {
+      d[s.type_tag] += 1;
     }
   }
   return d;
@@ -106,7 +106,7 @@ export function typeDistTotal(d: TypeDist) {
 }
 
 export function isFormedType(tag: string | null | undefined): tag is FormedTypeTag {
-  return Boolean(tag && TYPE_TAGS.includes(tag as FormedTypeTag));
+  return Boolean(tag && (TYPE_TAGS as readonly string[]).includes(tag));
 }
 
 /** 画像形成后的五型雷达底轮廓（未形成时不套用） */

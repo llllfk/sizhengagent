@@ -180,7 +180,8 @@ export function buildActivityRadarAxes(input: {
   activity: StudentActivity;
 }) {
   const a = input.activity;
-  const formed = isFormedType(input.type_tag);
+  const typeTag = input.type_tag;
+  const formed = isFormedType(typeTag);
   const ready =
     a.qa_sessions +
       a.qa_rounds +
@@ -190,7 +191,7 @@ export function buildActivityRadarAxes(input: {
       (a.quiz_last ? 1 : 0) >
     0;
   const clamp = (n: number) => Math.max(8, Math.min(98, Math.round(n)));
-  const shape = formed ? TYPE_RADAR_SHAPE[input.type_tag] : null;
+  const shape = formed ? TYPE_RADAR_SHAPE[typeTag] : null;
   const typeBoost = (t: string) => (shape ? shape[t] ?? 0 : 0);
   if (!formed && !ready) {
     return [
