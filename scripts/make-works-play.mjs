@@ -46,9 +46,17 @@ for (const clip of clips) {
     continue;
   }
   if (existsSync(dest)) {
-    console.log("SKIP", clip.id);
-    ok++;
-    continue;
+    const probe = spawnSync(
+      "ffmpeg",
+      ["-v", "error", "-i", dest, "-f", "null", "-"],
+      { windowsHide: true },
+    );
+    if (probe.status === 0) {
+      console.log("SKIP", clip.id);
+      ok++;
+      continue;
+    }
+    console.log("REDO", clip.id, "(broken play file)");
   }
   console.log("ENC ", clip.id, "←", clip.file);
   const r = spawnSync(

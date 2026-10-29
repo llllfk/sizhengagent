@@ -3,6 +3,9 @@
  * 仅命中下列问题时走固定答；其余问题走智能体。
  */
 
+/** 固定脚本回复前的思考等待，避免秒回显得不像智能体 */
+export const FIXED_SCRIPT_THINK_MS = 6000;
+
 export type FixedQaTurn = {
   question: string;
   answer: string;

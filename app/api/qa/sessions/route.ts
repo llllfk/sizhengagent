@@ -8,10 +8,15 @@ import {
   isCozeChatConfigured,
 } from "@/lib/coze/chat";
 import { withCompanionGuard } from "@/lib/content/companionPrompt";
+import { FIXED_SCRIPT_THINK_MS } from "@/lib/content/fixedQaScript";
 import { buildFirstPrompt } from "@/lib/content/qaEngine";
 import { createSession, findStudent } from "@/lib/repo";
 
 export const maxDuration = 25;
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 /** 首轮：固定脚本问 → 固定答；其余 → Coze 智能体（失败回落本地） */
 export async function POST(request: NextRequest) {
@@ -37,6 +42,10 @@ export async function POST(request: NextRequest) {
     let cozeConversationId: string | null = null;
     let source: "fixed_script" | "coze" | "local" =
       stub.mode === "fixed" ? "fixed_script" : "local";
+
+    if (stub.mode === "fixed") {
+      await sleep(FIXED_SCRIPT_THINK_MS);
+    }
 
     if (stub.mode === "agent" && isCozeChatConfigured()) {
       try {

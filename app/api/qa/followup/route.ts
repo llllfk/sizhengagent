@@ -8,6 +8,7 @@ import {
   isCozeChatConfigured,
 } from "@/lib/coze/chat";
 import { withCompanionGuard } from "@/lib/content/companionPrompt";
+import { FIXED_SCRIPT_THINK_MS } from "@/lib/content/fixedQaScript";
 import { buildFollowupPrompt } from "@/lib/content/qaEngine";
 import {
   appendFollowup,
@@ -17,6 +18,10 @@ import {
 } from "@/lib/repo";
 
 export const maxDuration = 25;
+
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
 
 /** 追问：固定链路继续脚本；开放题走 Coze */
 export async function POST(request: NextRequest) {
@@ -60,6 +65,10 @@ export async function POST(request: NextRequest) {
     let prompt = local.prompt;
     let source: "fixed_script" | "coze" | "local" =
       local.mode === "fixed" ? "fixed_script" : "local";
+
+    if (local.mode === "fixed") {
+      await sleep(FIXED_SCRIPT_THINK_MS);
+    }
 
     if (local.mode === "agent" && isCozeChatConfigured() && !local.shouldEscalate) {
       try {
