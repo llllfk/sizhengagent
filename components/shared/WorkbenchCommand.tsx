@@ -136,6 +136,10 @@ export function WorkbenchCommand() {
   const [note, setNote] = useState("");
   const [clock, setClock] = useState("");
   const [caseIdx, setCaseIdx] = useState(0);
+  const [scriptTheme, setScriptTheme] = useState("飞行颠簸中的旅客纠纷");
+  const [debateTheme, setDebateTheme] = useState(
+    "客舱服务该不该「适度通融」",
+  );
   const [kickoff, setKickoff] = useState<KickoffRoom | null>(null);
   const [kickToken, setKickToken] = useState<string | null>(null);
 
@@ -244,11 +248,28 @@ export function WorkbenchCommand() {
     setLoading(true);
     setNote("");
     try {
+      const theme =
+        mode === "script"
+          ? scriptTheme.trim()
+          : mode === "debate"
+            ? debateTheme.trim()
+            : undefined;
+      if (mode === "script" && !theme) {
+        setNote("请先填写剧本主题");
+        setLoading(false);
+        return;
+      }
+      if (mode === "debate" && !theme) {
+        setNote("请先填写辩题");
+        setLoading(false);
+        return;
+      }
       const res = await fetch("/api/interactive/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode,
+          ...(theme ? { theme } : {}),
           ...(mode === "cabin" && caseId ? { case_id: caseId } : {}),
         }),
       });
@@ -261,7 +282,9 @@ export function WorkbenchCommand() {
       setNote(
         mode === "cabin"
           ? `已开场 · ${title}`
-          : `已开场 · ${json.data.title}`,
+          : mode === "script" || mode === "debate"
+            ? `已开场 · ${json.data.title} · ${json.data.theme}`
+            : `已开场 · ${json.data.title}`,
       );
     } catch (e) {
       setNote(e instanceof Error ? e.message : "发起失败");
@@ -413,6 +436,31 @@ export function WorkbenchCommand() {
               )}
             </div>
 
+            <div className="grid gap-2 sm:grid-cols-2">
+              <label className="block space-y-1 rounded-sm border border-[var(--line)] bg-white/90 px-3 py-2">
+                <span className="text-[10px] tracking-[0.18em] text-[var(--orange)]">
+                  剧本主题
+                </span>
+                <input
+                  value={scriptTheme}
+                  onChange={(e) => setScriptTheme(e.target.value)}
+                  placeholder="飞行颠簸中的旅客纠纷"
+                  className="w-full bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
+                />
+              </label>
+              <label className="block space-y-1 rounded-sm border border-[var(--line)] bg-white/90 px-3 py-2">
+                <span className="text-[10px] tracking-[0.18em] text-[var(--orange)]">
+                  辩题
+                </span>
+                <input
+                  value={debateTheme}
+                  onChange={(e) => setDebateTheme(e.target.value)}
+                  placeholder="客舱服务该不该「适度通融」"
+                  className="w-full bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)]"
+                />
+              </label>
+            </div>
+
             <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
               {MODES.map((m, i) => (
                 <button
@@ -474,7 +522,7 @@ export function WorkbenchCommand() {
               <p className="text-sm text-[var(--orange-deep)]">{note}</p>
             ) : (
               <p className="text-xs text-[var(--muted)]">
-                点击上方任一式即开场；客舱情景默认绑定右侧主案例。
+                先填剧本主题/辩题，再点对应式开场；客舱情景默认绑定右侧主案例。
               </p>
             )}
           </div>

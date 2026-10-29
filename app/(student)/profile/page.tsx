@@ -10,7 +10,6 @@ import {
   buildStudentRadarAxes,
   type RadarAxis,
 } from "@/components/shared/ProfileRadar";
-import { TypeGuide } from "@/components/shared/TypeGuide";
 import { TYPE_LABEL, isFormedType } from "@/lib/content/typeTags";
 
 type LearningIssue = {
@@ -244,8 +243,6 @@ export default function ProfilePage() {
               </ul>
             )}
           </Panel>
-
-          <TypeGuide highlight={profile.type_tag} />
 
           <Panel title="分层提示" hint="与⑥分层任务、⑤课中五式联动">
             <p className="text-sm leading-7 text-[var(--muted)]">

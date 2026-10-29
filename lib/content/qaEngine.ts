@@ -6,128 +6,184 @@ import {
   type QuestionType,
 } from "@/lib/ai";
 import {
+  FIXED_QA_DEMO_PROMPTS,
+  FIXED_QA_ESCALATE_HINT,
+  matchFixedFollowup,
+  matchFixedQuestion,
+} from "@/lib/content/fixedQaScript";
+import {
+  retrieveForFixedScript,
   retrieveForQuestion,
   type RetrievalHit,
 } from "@/lib/content/retrieval";
 
-/** 无大模型时的苏格拉底追问文案；检索命中单独返回供侧栏展示 */
-export function buildFirstPrompt(question: string): {
+function qTypeForIndex(index: number): QuestionType {
+  if (index === 0) return "value";
+  if (index >= 2) return "scenario";
+  return "knowledge";
+}
+
+export type FirstPromptResult = {
+  mode: "fixed" | "agent";
   q_type: QuestionType;
   prompt: string;
   retrieval: RetrievalHit[];
-} {
+  script_index: number | null;
+};
+
+/**
+ * 首轮：命中固定脚本问法 → 固定答；否则走智能体（本地苏格拉底兜底）
+ * 右侧检索一律习著作置顶
+ */
+export function buildFirstPrompt(question: string): FirstPromptResult {
+  const fixed = matchFixedQuestion(question);
+  if (fixed) {
+    return {
+      mode: "fixed",
+      q_type: qTypeForIndex(fixed.index),
+      prompt: contentSafetyGate(fixed.turn.answer).text,
+      retrieval: retrieveForFixedScript({
+        scriptIndex: fixed.index,
+        query: question,
+        limit: 4,
+      }),
+      script_index: fixed.index,
+    };
+  }
+
   const q_type = classifyQuestionStub(question);
   const retrieval = retrieveForQuestion(question, 4);
   const ragLine =
     retrieval.length > 0
-      ? "【检索】已命中答疑知识库 / 客舱案例库（见右侧引用），请结合片段思考，勿照搬结论。\n"
+      ? "【检索】已命中答疑知识库（见右侧引用，首条为习著作），请结合片段思考。\n"
       : "";
 
+  // 本地兜底也压到三句以内，与客户「凝练准确」一致
   let body: string;
   if (q_type === "scenario") {
     body = [
-      "【情境识别】这更像客舱现场的决策题，而不是背标准答案。",
-      ragLine,
-      "先把画面还原清楚：你站在哪个岗位？冲突的双方分别要什么？",
-      "安全底线有没有被触碰？如果有，哪一条不可让步？",
-      "",
-      "请用两三句话描述：当时你看到了什么、最先担心的是什么。",
+      "这是客舱决策题，先对齐安全底线再谈服务温度。",
+      ragLine.trim() || null,
+      "请用一句话说清：你最先担心的是什么、哪条红线不能让？",
     ]
       .filter(Boolean)
-      .join("\n");
+      .join("");
   } else if (q_type === "value") {
     body = [
-      "【价值类】我不会直接给结论，我们用苏格拉底三连一起想。",
-      ragLine,
-      `第一问：${nextSocraticPrompt(0)}`,
-      "（可以结合空乘岗位：对旅客、对机组、对规则，你分别站在哪一侧？）",
-    ]
-      .filter(Boolean)
-      .join("\n");
+      `价值题不给现成结论。${nextSocraticPrompt(0)}`,
+      "请结合空乘岗位，用一句话表明你站在旅客、机组还是规章这一侧，并说出依据。",
+    ].join("");
   } else {
     body = [
-      "【知识类】先对齐关键概念，再谈落地。",
-      ragLine,
-      "在你的问题里，你最想弄清的关键词是哪一个？",
-      "例如：人民至上 / 服务边界 / 职业伦理 / 安全红线 / 三个敬畏。",
-      "",
-      "请选出一个词，并用自己的话解释它在客舱里意味着什么。",
-    ]
-      .filter(Boolean)
-      .join("\n");
+      "先抓住一个关键词（如人民至上、服务边界、安全红线）。",
+      "请用一句话定义它，再用一句话说明在客舱里意味着什么。",
+    ].join("");
   }
 
-  const gated = contentSafetyGate(withAiDisclaimer(body));
-  return { q_type, prompt: gated.text, retrieval };
+  return {
+    mode: "agent",
+    q_type,
+    prompt: contentSafetyGate(withAiDisclaimer(body)).text,
+    retrieval,
+    script_index: null,
+  };
 }
 
+export type FollowupPromptResult = {
+  mode: "fixed" | "agent";
+  prompt: string;
+  shouldEscalate: boolean;
+  escalateHint?: string;
+  retrieval: RetrievalHit[];
+  script_index: number | null;
+};
+
+/**
+ * 追问：开场若命中固定脚本则继续脚本；否则智能体本地追问兜底
+ */
 export function buildFollowupPrompt(input: {
+  openingQuestion: string;
   q_type: QuestionType;
   round: number;
   answer: string;
-}): { prompt: string; shouldEscalate: boolean } {
+}): FollowupPromptResult {
+  const fixed = matchFixedFollowup(input.openingQuestion, input.round);
+  if (fixed) {
+    return {
+      mode: "fixed",
+      prompt: contentSafetyGate(fixed.turn.answer).text,
+      shouldEscalate: fixed.shouldEscalate,
+      escalateHint: fixed.shouldEscalate ? FIXED_QA_ESCALATE_HINT : undefined,
+      retrieval: retrieveForFixedScript({
+        scriptIndex: fixed.index,
+        query: `${input.openingQuestion} ${input.answer}`,
+        limit: 4,
+      }),
+      script_index: fixed.index,
+    };
+  }
+
   const nextRound = input.round;
   const step = nextSocraticPrompt(Math.min(nextRound, 2));
+  const retrieval = retrieveForQuestion(
+    `${input.openingQuestion} ${input.answer}`,
+    4,
+  );
 
   if (nextRound >= 2 || !step) {
-    const prompt = withAiDisclaimer(
-      [
-        "本轮追问已达上限。你的思考已经触及关键张力，但现场预案仍不够可执行。",
-        "系统将生成「疑难清单」推送至教师工作台，由老师做专题答疑与价值引导。",
-        "",
-        "你可以补充一句：最希望老师帮你澄清的一点是什么？",
-      ].join("\n"),
-    );
     return {
-      prompt: contentSafetyGate(prompt).text,
+      mode: "agent",
+      prompt: contentSafetyGate(
+        withAiDisclaimer(
+          "本轮追问已满。请用一句话写出最想请老师澄清的一点，系统将转入教师队列。",
+        ),
+      ).text,
       shouldEscalate: true,
+      escalateHint: FIXED_QA_ESCALATE_HINT,
+      retrieval,
+      script_index: null,
     };
   }
 
   let body: string;
   if (input.q_type === "scenario") {
     const hints = [
-      `收到。继续追问：${step}\n对照刚才的描述，如果安全与温度冲突，你优先保住哪一端？为什么？`,
-      `再推一步：${step}\n换作「夜间延误 + 旅客激动」的情境，你的方案还成立吗？请改一版 30 秒话术。`,
-      `收束一下：${step}\n请用「可执行三步」写出预案：先做什么、再说什么、何时升级请示。`,
+      `${step}安全与温度冲突时，你优先保住哪一端？请一句话说清理由。`,
+      `${step}换成夜间延误、旅客激动，你的方案还成立吗？请给一句可执行话术。`,
+      `${step}请用「先做—再说—何时升级」三步各一句，收束预案。`,
     ];
-    body = hints[Math.min(nextRound, hints.length - 1)];
+    body = hints[Math.min(nextRound, hints.length - 1)]!;
   } else if (input.q_type === "value") {
     const hints = [
-      `好。第二问：${step}\n请给出一条你愿意公开站队的依据（制度 / 案例 / 职业守则均可）。`,
-      `第三问：${step}\n若旅客换成老人或儿童，你的判断会变吗？变在哪里、不变在哪里？`,
-      `请把你的立场压缩成一句话「我坚持…因为…」。`,
+      `${step}请给出一条愿意公开站队的依据（制度/案例/守则），一句话即可。`,
+      `${step}若换成老人或儿童旅客，判断变在哪、不变在哪？各用半句话。`,
+      `请压缩成一句：「我坚持…因为…」。`,
     ];
-    body = hints[Math.min(nextRound, hints.length - 1)];
+    body = hints[Math.min(nextRound, hints.length - 1)]!;
   } else {
     const hints = [
-      `概念抓得不错。接着：${step}\n请举一个客舱里的反例——看起来「好心」却可能越界的做法。`,
-      `再深一层：${step}\n这个概念如果只停留在口号，课堂与岗位之间会断在哪里？`,
-      `请用「定义一句 + 岗位一句」做小结，便于写入你的错题本。`,
+      `${step}请举一个客舱「好心却越界」的反例，一句话。`,
+      `${step}若只停留在口号，课堂与岗位会断在哪里？一句话。`,
+      `请用「定义一句 + 岗位一句」小结。`,
     ];
-    body = hints[Math.min(nextRound, hints.length - 1)];
+    body = hints[Math.min(nextRound, hints.length - 1)]!;
   }
 
   return {
+    mode: "agent",
     prompt: contentSafetyGate(withAiDisclaimer(body)).text,
     shouldEscalate: false,
+    retrieval,
+    script_index: null,
   };
 }
 
+/** 示范问：固定脚本问 + 若干开放题 */
 export const DEMO_PROMPTS = [
+  ...FIXED_QA_DEMO_PROMPTS,
   "客舱突发旅客纠纷时，乘务员该如何平衡规则与人情？",
   "颠簸中旅客拒绝回座，我该先讲安全还是先安抚情绪？",
-  "什么是客舱服务里的「人民至上」？",
-  "民航安全红线意识在客舱岗位上具体意味着什么？",
-  "如何理解「安全是民航业的生命线」与准点效益的关系？",
   "三个敬畏如何落到一次平凡航班的客舱巡视？",
-  "周恩来「保证安全第一，改善服务工作，争取飞行正常」对空乘意味着什么？",
-  "中国梦是人民的梦，在客舱服务里怎么落地？",
-  "超规行李坚持登机，怎样给旅客可执行的双路径？",
-  "特殊旅客加座与超售冲突时，公平和保障如何同时成立？",
-  "旅客持续辱骂威胁乘务员，服务是不是必须无底线忍让？",
-  "新《民用航空法》如何同时保护旅客权益和机组履职尊严？",
-  "旅客说电子烟不是烟，机上为什么不能抽？",
 ];
 
 export { SAFETY_DEMO_SAMPLES } from "@/lib/ai";

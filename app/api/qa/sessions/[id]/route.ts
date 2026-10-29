@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
-import { requireStudentId } from "@/lib/auth/session";
+import { requireQaActorId } from "@/lib/auth/session";
 import { getQaSession } from "@/lib/repo";
 
 export async function GET(
@@ -8,7 +8,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ) {
   try {
-    const studentId = await requireStudentId();
+    const studentId = await requireQaActorId();
     const { id } = await ctx.params;
     const session = await getQaSession(id);
     if (!session || session.student_id !== studentId) {

@@ -12,7 +12,8 @@ function createPool() {
     ssl: { rejectUnauthorized: false },
     max: 8,
     idleTimeoutMillis: 30_000,
-    connectionTimeoutMillis: 15_000,
+    // 探活/首连不要卡太久，避免进八模块等页干等十余秒
+    connectionTimeoutMillis: 4_000,
   });
 }
 

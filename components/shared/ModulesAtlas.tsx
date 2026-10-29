@@ -32,7 +32,7 @@ const MODULES: Mod[] = [
   },
   {
     no: "③",
-    title: "论坛研讨聚合",
+    title: "云思坞研讨站",
     blurb: "议题碰撞 · 精华回灌",
     ring: "deep",
     href: "/forum",
@@ -40,14 +40,14 @@ const MODULES: Mod[] = [
   {
     no: "④",
     title: "学情画像引擎",
-    blurb: "三型灯牌 · 雷达",
+    blurb: "五型灯牌·实时雷达",
     ring: "through",
     href: "/profile",
     teacherHref: "/analytics",
   },
   {
     no: "⑤",
-    title: "互动剧场五式",
+    title: "情境互动剧场",
     blurb: "课中同屏开场",
     ring: "through",
     href: "/interactive",
@@ -63,14 +63,14 @@ const MODULES: Mod[] = [
   {
     no: "⑦",
     title: "行业问题对接",
-    blurb: "客舱案例 · 预案",
+    blurb: "客舱案例·预案演练",
     ring: "alive",
     href: "/industry",
   },
   {
     no: "⑧",
     title: "成果孵化转化",
-    blurb: "工坊 · 成果库",
+    blurb: "创作工坊·成果库",
     ring: "alive",
     href: "/works",
     teacherHref: "/works",
@@ -79,18 +79,18 @@ const MODULES: Mod[] = [
 
 const RING_META = {
   deep: {
-    label: "讲深",
-    sub: "三阶答疑闭环",
+    label: "三阶答疑闭环",
+    sub: "",
     flow: "① → ② → ③",
   },
   through: {
-    label: "讲透",
-    sub: "画像 · 课中 · 课后",
+    label: "分型适配施教",
+    sub: "真理的“味道”你知道",
     flow: "④ · ⑤ · ⑥",
   },
   alive: {
-    label: "讲活",
-    sub: "向前岗位 · 向后成果",
+    label: "双向赋能转化",
+    sub: "行动是最好的答卷",
     flow: "⑦ · ⑧",
   },
 } as const;
@@ -208,10 +208,12 @@ export function ModulesAtlas({ isTeacher = false }: { isTeacher?: boolean }) {
               >
                 <header className="mb-3 flex items-baseline justify-between gap-2 border-b border-[var(--line)] pb-2">
                   <div>
-                    <p className="font-brand text-2xl text-[var(--orange)]">
+                    <p className="font-brand text-xl leading-tight text-[var(--orange)] md:text-2xl">
                       {meta.label}
                     </p>
-                    <p className="text-[11px] text-[var(--muted)]">{meta.sub}</p>
+                    {meta.sub ? (
+                      <p className="text-[11px] text-[var(--muted)]">{meta.sub}</p>
+                    ) : null}
                   </div>
                   <p className="text-[10px] tracking-wider text-[var(--orange-deep)]">
                     {meta.flow}

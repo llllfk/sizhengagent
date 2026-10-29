@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
-import { requireStudentId } from "@/lib/auth/session";
+import { requireQaActorId } from "@/lib/auth/session";
 import { createEscalation, getSession } from "@/lib/repo";
 
 export async function POST(request: NextRequest) {
   try {
-    const studentId = await requireStudentId();
+    const studentId = await requireQaActorId();
     const body = await request.json();
     const sessionId = String(body.session_id ?? "");
     const summary = String(body.summary ?? "").trim();

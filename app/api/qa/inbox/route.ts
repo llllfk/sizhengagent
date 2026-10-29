@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
-import { requireStudentId } from "@/lib/auth/session";
+import { requireQaActorId } from "@/lib/auth/session";
 import { listStudentEscalations } from "@/lib/repo";
 
 export async function GET() {
   try {
-    const studentId = await requireStudentId();
+    const studentId = await requireQaActorId();
     const list = await listStudentEscalations(studentId);
     return NextResponse.json({
       data: list.filter((e) => e.teacher_reply),

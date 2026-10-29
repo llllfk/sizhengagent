@@ -36,7 +36,7 @@ export function PortalShell({
 }) {
   const pathname = usePathname();
   const meta = toneMeta[tone];
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
 
   return (
     <div className="portal-root relative min-h-dvh overflow-x-hidden">
@@ -129,6 +129,8 @@ export function PortalShell({
                   退出登录
                 </button>
               </>
+            ) : sessionLoading ? (
+              <span className="text-[11px] text-[var(--muted)]">校验中…</span>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="hidden text-[11px] text-[var(--muted)] sm:inline">
@@ -153,6 +155,7 @@ export function PortalShell({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={item.href === "/modules" ? true : undefined}
                 className={cn(
                   "shrink-0 rounded-sm px-3 py-2 text-sm font-semibold tracking-wide transition md:text-base",
                   active

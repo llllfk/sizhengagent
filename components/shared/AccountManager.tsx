@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { useSession } from "@/components/shared/useSession";
+import { WorksArchiveList } from "@/components/shared/WorksArchiveList";
 import { cn } from "@/lib/utils";
 import { TYPE_LABEL, TYPE_TAGS } from "@/lib/content/typeTags";
 import type { ClassGroup } from "@/types";
@@ -57,6 +58,7 @@ export function AccountManager() {
   const [logUserId, setLogUserId] = useState<string | null>(null);
   const [logItems, setLogItems] = useState<LoginEvent[]>([]);
   const [logBusy, setLogBusy] = useState(false);
+  const [worksStudentId, setWorksStudentId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState({
     username: "",
     display_name: "",
@@ -572,6 +574,22 @@ export function AccountManager() {
                         </Button>
                       ) : null}
                       {a.role === "student" && a.student_id ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          disabled={busy}
+                          onClick={() =>
+                            setWorksStudentId((cur) =>
+                              cur === a.student_id ? null : a.student_id,
+                            )
+                          }
+                        >
+                          {worksStudentId === a.student_id
+                            ? "收起作品"
+                            : "查看作品"}
+                        </Button>
+                      ) : null}
+                      {a.role === "student" && a.student_id ? (
                         <select
                           className="rounded-sm border border-[var(--line)] px-2 py-1.5 text-[11px] outline-none focus:border-[var(--orange)]"
                           value={a.class_id ?? ""}
@@ -652,6 +670,13 @@ export function AccountManager() {
                     </ul>
                   )}
                 </div>
+              ) : null}
+              {a.student_id && worksStudentId === a.student_id ? (
+                <WorksArchiveList
+                  className="mt-3"
+                  studentId={a.student_id}
+                  title={`${a.display_name} · 成片`}
+                />
               ) : null}
             </li>
           );

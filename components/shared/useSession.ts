@@ -46,15 +46,13 @@ function portalFromPath(path: string): TabPortal | null {
   if (path.startsWith("/forum") || path.startsWith("/highlights")) {
     return "community";
   }
+  // /companion 师生都可体验答疑；/modules、/works 共用——不强制 portal
   if (
-    path.startsWith("/companion") ||
     path.startsWith("/interactive") ||
     path.startsWith("/tasks") ||
     path.startsWith("/industry") ||
     path.startsWith("/video-workshop") ||
-    path.startsWith("/profile") ||
-    path.startsWith("/works") ||
-    path.startsWith("/modules")
+    path.startsWith("/profile")
   ) {
     return "student";
   }
@@ -68,7 +66,9 @@ function cacheKey(portal: TabPortal | null) {
 function cacheFresh(portal: TabPortal | null) {
   if (!sessionCache) return false;
   if (Date.now() - sessionCache.at > SESSION_TTL_MS) return false;
-  // 无路径 portal 时用任意缓存；有 portal 时须同端
+  // 未登录的空缓存绝不当「已校验」，否则进学伴会立刻被踢回登录
+  if (!sessionCache.user) return false;
+  // 无路径 portal 时用任意有效缓存；有 portal 时须同端或未标记端
   if (!portal) return true;
   return sessionCache.portal === portal || sessionCache.portal === null;
 }
@@ -112,15 +112,25 @@ async function fetchSession(
       }
 
       if (!res.ok) {
-        // 瞬时失败时保留旧会话，避免对话页被误判未登录而「闪退」回登录
-        if (prevUser) {
+        // 瞬时失败 / 共用页 portal 不匹配时保留旧会话，避免右上角变「未登录」
+        const keep =
+          prevUser ??
+          (sessionCache?.user &&
+          (!portal ||
+            sessionCache.portal === portal ||
+            sessionCache.portal === null)
+            ? sessionCache.user
+            : null) ??
+          sessionCache?.user ??
+          null;
+        if (keep) {
           sessionCache = {
-            user: prevUser,
+            user: keep,
             error: "",
             portal: sessionCache?.portal ?? portal,
             at: Date.now(),
           };
-          return prevUser;
+          return keep;
         }
         sessionCache = {
           user: null,
@@ -172,8 +182,9 @@ export function useSession() {
     fromPath ??
     (typeof window !== "undefined" ? readTabPortal() : null);
 
-  const [user, setUser] = useState<ClientSession | null>(() =>
-    cacheFresh(portalHint) ? sessionCache!.user : null,
+  // 切 layout（如学伴→八模块）时先乐观展示缓存，避免右上角闪「未登录」
+  const [user, setUser] = useState<ClientSession | null>(
+    () => sessionCache?.user ?? null,
   );
   const [loading, setLoading] = useState(() => !cacheFresh(portalHint));
   const [error, setError] = useState(() =>
@@ -221,7 +232,8 @@ export function useSession() {
     user,
     loading,
     error,
-    refresh: () => refresh({ silent: false }),
+    refresh: (opts?: { silent?: boolean }) =>
+      refresh({ silent: opts?.silent ?? false }),
     studentId: user?.role === "student" ? user.student_id || user.username : null,
     isTeacher: user?.role === "teacher",
     isStudent: user?.role === "student",

@@ -380,7 +380,7 @@ export const KNOWLEDGE_CORPUS: KnowledgeSnippet[] = [
     source_note: "伊尔-14专机与救援",
   },
 
-  // —— 中国梦论述摘编 ——
+  // —— 习著作选读·中国梦论述摘编 ——
   {
     snippet_id: "kb_dream_revive",
     kind: "policy",
@@ -391,7 +391,7 @@ export const KNOWLEDGE_CORPUS: KnowledgeSnippet[] = [
       "个人职业成长与民航强国、民族复兴同向；客舱岗位也是中国形象的窗口。",
     keywords: ["中国梦", "民族复兴", "复兴之路", "命运"],
     source_file: "习近平关于实现中华民族伟大复兴的中国梦论述摘编.pdf",
-    source_note: "参观《复兴之路》展览讲话",
+    source_note: "习著作选读·参观《复兴之路》展览讲话",
   },
   {
     snippet_id: "kb_dream_people",
@@ -401,9 +401,9 @@ export const KNOWLEDGE_CORPUS: KnowledgeSnippet[] = [
       "中国梦必须紧紧依靠人民来实现，必须不断为人民造福。",
     teaching_point:
       "客舱「人民至上」：旅客生命与尊严优先，服务温度建立在安全底线之上。",
-    keywords: ["中国梦", "人民的梦", "造福", "人民至上"],
+    keywords: ["中国梦", "人民的梦", "造福", "人民至上", "我将无我", "不负人民"],
     source_file: "习近平关于实现中华民族伟大复兴的中国梦论述摘编.pdf",
-    source_note: "十二届全国人大一次会议讲话",
+    source_note: "习著作选读·十二届全国人大一次会议讲话",
   },
   {
     snippet_id: "kb_dream_model",
@@ -415,7 +415,7 @@ export const KNOWLEDGE_CORPUS: KnowledgeSnippet[] = [
       "空乘的「不平凡」藏在每一次安全带检查、每一次应急广播里。",
     keywords: ["劳模精神", "爱岗敬业", "平凡", "奉献", "铁人"],
     source_file: "习近平关于实现中华民族伟大复兴的中国梦论述摘编.pdf",
-    source_note: "同全国劳动模范代表座谈",
+    source_note: "习著作选读·同全国劳动模范代表座谈",
   },
 
   // —— 二十大报告精选 ——
@@ -461,8 +461,9 @@ export const KNOWLEDGE_CORPUS: KnowledgeSnippet[] = [
       "双向保护",
       "第171条",
     ],
-    source_file: "民航思政课程案例库_东航乘务员下跪事件与新民用航空法修订.docx",
-    source_note: "2025年修订·2026年7月1日施行",
+    source_file: "中华人民共和国民用航空法_2026施行原文.docx",
+    source_note:
+      "2025年修订全文·2026年7月1日施行·已入库扣子答疑知识库 qihang-qa-knowledge",
   },
   {
     snippet_id: "kb_calaw_kneel",

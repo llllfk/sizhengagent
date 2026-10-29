@@ -22,22 +22,32 @@ import {
 
 let schemaReady: Promise<boolean> | null = null;
 let seedReady: Promise<boolean> | null = null;
+let cabinSyncReady: Promise<void> | null = null;
 
 /**
- * 运行时默认只保证表结构存在（幂等、很快）。
- * 种子 / 展示灌数请用 seedPgIfNeeded()，勿挂在登录或跟帖热路径上。
+ * 业务入口的库就绪检查。
+ * 客户库已有表和数据时默认直接放行，不再跑建表 / 客舱同步（会拖慢进页）。
+ * 仅当环境变量 QI_HANG_ENSURE_PG=1 时，才执行完整建表+汇编同步（空库首启用）。
  */
 export function ensurePg(): Promise<boolean> {
   if (!hasDb()) return Promise.resolve(false);
+  if (process.env.QI_HANG_ENSURE_PG !== "1") {
+    return Promise.resolve(true);
+  }
   if (!schemaReady) {
     schemaReady = applySchema()
-      .then(() => true)
+      .then(async () => {
+        await syncCabinAssemblyCases();
+        return true;
+      })
       .catch(async (e) => {
         console.error("[pg] schema failed", e);
-        // 结构脚本偶发失败时：库仍可达则放行业务，避免跟帖/发帖被 503 卡死
         try {
           await query("select 1::int as n");
           console.warn("[pg] schema soft-fail; DB reachable, continue");
+          await syncCabinAssemblyCases().catch((e2) =>
+            console.error("[pg] cabin sync after soft-fail", e2),
+          );
           return true;
         } catch (e2) {
           console.error("[pg] unreachable", e2);
@@ -47,6 +57,25 @@ export function ensurePg(): Promise<boolean> {
       });
   }
   return schemaReady;
+}
+
+/** 进程内只跑一次：把代码里的汇编案例幂等 upsert 进库 */
+export function syncCabinAssemblyCases(): Promise<void> {
+  if (!hasDb()) return Promise.resolve();
+  if (!cabinSyncReady) {
+    cabinSyncReady = ensureCabinAssemblyCases()
+      .then(() => {
+        console.log(
+          `[pg] cabin assembly synced (${CABIN_CASES_ASSEMBLY.length})`,
+        );
+      })
+      .catch((e) => {
+        console.error("[pg] cabin assembly sync failed", e);
+        cabinSyncReady = null;
+        throw e;
+      });
+  }
+  return cabinSyncReady;
 }
 
 async function applySchema() {
@@ -132,8 +161,11 @@ async function runSeedIfNeeded() {
     Number(row?.quiz ?? 0) > 0 ||
     Number(row?.cabin ?? 0) > 0 ||
     Number(row?.profiles ?? 0) > 0;
+  // 无论是否空库，都先补全客舱汇编（含新增思政案例库）
+  await syncCabinAssemblyCases();
+
   if (alreadyFilled) {
-    console.log("[pg] seed skip, data present", row);
+    console.log("[pg] seed skip heavy, cabin synced", row);
     return true;
   }
 
@@ -143,7 +175,6 @@ async function runSeedIfNeeded() {
 
   console.log("[pg] heavy seed start (empty db)", row);
   await Promise.all([
-    ensureCabinAssemblyCases(),
     ensureKnowledgeCorpus(),
     ensureInteractiveBank(),
     ensureWorkGallery(),
@@ -290,7 +321,7 @@ async function runSeedIfNeeded() {
 /** @deprecated 兼容旧名：现仅建表，不再灌种子 */
 export const bootstrapPg = ensurePg;
 
-/** 汇编 15 条客舱案例幂等入库 */
+/** 原汇编 15 + 新《民用航空法》思政案例库 7，幂等入库 */
 async function ensureCabinAssemblyCases() {
   // 去掉早期占位种子，避免与汇编真实案例混选
   await query(

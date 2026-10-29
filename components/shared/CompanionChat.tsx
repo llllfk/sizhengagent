@@ -45,7 +45,9 @@ async function readJson(res: Response) {
 }
 
 export function CompanionChat() {
-  const { user, loading: sessionLoading, isStudent, refresh } = useSession();
+  const { user, loading: sessionLoading, isStudent, isTeacher, refresh } =
+    useSession();
+  const canChat = isStudent || isTeacher;
   const [input, setInput] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [qType, setQType] = useState<string | null>(null);
@@ -57,22 +59,20 @@ export function CompanionChat() {
   const [scanning, setScanning] = useState(false);
   const [flashKey, setFlashKey] = useState(0);
   const sendingRef = useRef(false);
-  const hadStudentRef = useRef(false);
-
-  // 发送中或本页曾确认过学员身份时，避免瞬时会话抖动误踢登录
-  const needLogin =
-    !sessionLoading && !isStudent && !sendingRef.current && !hadStudentRef.current;
+  const hadChatRef = useRef(false);
 
   useEffect(() => {
-    writeTabPortal("student");
-  }, []);
+    // 师生都可进答疑：按身份写 portal，勿把教师强行改成 student
+    if (isTeacher) writeTabPortal("teacher");
+    else writeTabPortal("student");
+  }, [isTeacher]);
 
   useEffect(() => {
-    if (isStudent) hadStudentRef.current = true;
-  }, [isStudent]);
+    if (canChat) hadChatRef.current = true;
+  }, [canChat]);
 
   useEffect(() => {
-    if (!isStudent || sessionId) return;
+    if (!canChat || sessionId) return;
     void (async () => {
       try {
         const res = await fetch("/api/qa/inbox", { credentials: "include" });
@@ -98,7 +98,7 @@ export function CompanionChat() {
         /* 无答复时忽略 */
       }
     })();
-  }, [isStudent, sessionId]);
+  }, [canChat, sessionId]);
 
   useEffect(() => {
     if (!escalated || !sessionId) return;
@@ -132,13 +132,6 @@ export function CompanionChat() {
     return () => window.clearInterval(t);
   }, [escalated, sessionId]);
 
-  // 未登录回登录页；略延迟，避免与刚写入的 Cookie / me 竞态误踢
-  useEffect(() => {
-    if (!needLogin) return;
-    const t = window.setTimeout(() => goLogin(), 800);
-    return () => window.clearTimeout(t);
-  }, [needLogin]);
-
   useEffect(() => {
     if (!scanning) return;
     const t = window.setTimeout(() => setScanning(false), 900);
@@ -152,8 +145,8 @@ export function CompanionChat() {
   }
 
   async function handleUnauthorized(): Promise<boolean> {
-    const next = await refresh();
-    if (next?.role === "student") return false;
+    const next = await refresh({ silent: true });
+    if (next?.role === "student" || next?.role === "teacher") return false;
     setMessages((m) => [
       ...m,
       {
@@ -169,7 +162,7 @@ export function CompanionChat() {
     const text = (textOverride ?? input).trim();
     if (!text || loading || escalated) return;
 
-    if (!isStudent && !hadStudentRef.current) {
+    if (!canChat && !hadChatRef.current) {
       goLogin();
       return;
     }
@@ -307,11 +300,27 @@ export function CompanionChat() {
     setScanning(false);
   }
 
-  if (sessionLoading || needLogin) {
+  // 有登录缓存直接进；仅首屏无会话时短暂等待
+  if (!user && !hadChatRef.current && sessionLoading) {
     return (
       <p className="animate-pulse py-10 text-center text-sm text-[var(--muted)]">
-        {needLogin ? "正在前往登录…" : "校验登录状态…"}
+        加载中…
       </p>
+    );
+  }
+
+  if (!sessionLoading && !canChat && !hadChatRef.current) {
+    return (
+      <div className="space-y-3 py-10 text-center text-sm text-[var(--muted)]">
+        <p>请先登录后再使用学伴答疑</p>
+        <button
+          type="button"
+          className="rounded-sm border border-[var(--orange)]/40 bg-[var(--orange-fog)] px-4 py-2 text-[var(--orange-deep)]"
+          onClick={() => goLogin()}
+        >
+          去登录
+        </button>
+      </div>
     );
   }
 
@@ -398,7 +407,7 @@ export function CompanionChat() {
                 ))}
               </div>
               <p className="text-sm font-medium text-[var(--muted)]">
-                常见课堂问题
+                示范问（前几条为固定脚本，其后走智能体）
               </p>
               <div className="flex flex-col gap-2">
                 {DEMO_PROMPTS.map((p) => (

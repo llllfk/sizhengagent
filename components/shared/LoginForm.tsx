@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { writeTabPortal } from "@/lib/auth/portalClient";
+import { clearSessionCache } from "@/components/shared/useSession";
 import { cn } from "@/lib/utils";
 
 type Portal = "student" | "teacher" | "community";
@@ -79,6 +80,7 @@ export function LoginForm() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "登录失败");
+      clearSessionCache();
       writeTabPortal(portal);
       const dest =
         safeNext(searchParams.get("next")) ||

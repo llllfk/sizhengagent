@@ -48,36 +48,51 @@ function ringSlots(
  * 中圈 7（含正上）+ 外圈 8（错开半步，避开中圈射线）
  * 外圈底部额外下推，避免被中圈挡住
  */
-const INNER_SLOTS = ringSlots(7, 33, 34, 1).map((s) => {
-  // 中圈偏下的两枚略上收，给外圈底部让位
-  if (s.cy < 68) return s;
+const INNER_SLOTS = ringSlots(7, 34, 35, 1).map((s) => {
+  // 中圈左右（贴近中心成片高度）外推，避免被中心挡住
+  const nearMid = 1 - Math.min(1, Math.abs(s.cy - 50) / 30);
+  const sideOut =
+    Math.abs(s.cx - 50) > 10 ? nearMid * 0.14 : 0;
+  let cx = 50 + (s.cx - 50) * (1 + sideOut);
+  let cy = s.cy;
+  if (s.cy >= 68) {
+    cy = s.cy - 3.5;
+    cx = 50 + (cx - 50) * 1.04;
+  }
   return {
     ...s,
-    cy: +(s.cy - 3.5).toFixed(2),
-    cx: +(50 + (s.cx - 50) * 1.04).toFixed(2),
+    cy: +cy.toFixed(2),
+    cx: +cx.toFixed(2),
   };
 });
 
-const OUTER_SLOTS = ringSlots(8, 46, 50, 2, -67.5).map((s) => {
-  if (s.cy < 62) return s;
-  // 底部外圈往外/往下拉开
-  const t = Math.min(1, (s.cy - 62) / 28);
+const OUTER_SLOTS = ringSlots(8, 49, 52, 2, -67.5).map((s) => {
+  const dx = Math.abs(s.cx - 50);
+  // 左右外圈略外推，减少被中圈挡住，又不至于太散
+  const side = Math.max(0, (dx - 30) / 28);
+  let cx = 50 + (s.cx - 50) * (1.04 + side * 0.06);
+  let cy = s.cy;
+  if (s.cy >= 62) {
+    const t = Math.min(1, (s.cy - 62) / 28);
+    cy = Math.min(96.5, s.cy + 5.5 + t * 4);
+    cx = 50 + (cx - 50) * (1.02 + t * 0.04);
+  }
   return {
     ...s,
-    cy: +Math.min(96.5, s.cy + 5.5 + t * 4).toFixed(2),
-    cx: +(50 + (s.cx - 50) * (1.05 + t * 0.06)).toFixed(2),
+    cy: +cy.toFixed(2),
+    cx: +cx.toFixed(2),
   };
 });
 
 const TIER_WIDTH: Record<1 | 2, string> = {
-  1: "18.5%",
-  2: "14.5%",
+  1: "18.7%",
+  2: "14.9%",
 };
 
-/** 国家级最大，省级/校级次之；仍受环距约束，避免盖住邻卡 */
+/** 国家级最大，省级/校级次之；整体较上一档放大约 10% */
 function satWidth(award: string, tier: 1 | 2): string {
-  if (/国家级/.test(award)) return tier === 1 ? "22%" : "17.5%";
-  if (/省级|校级/.test(award)) return tier === 1 ? "20%" : "16%";
+  if (/国家级/.test(award)) return tier === 1 ? "21.5%" : "17%";
+  if (/省级|校级/.test(award)) return tier === 1 ? "19.3%" : "15.4%";
   return TIER_WIDTH[tier];
 }
 
@@ -191,12 +206,12 @@ function Satellite({
   clip,
   index,
   slot,
-  onPromote,
+  onOpen,
 }: {
   clip: WorkClip;
   index: number;
   slot: SatSlot;
-  onPromote: () => void;
+  onOpen: () => void;
 }) {
   const [entered, setEntered] = useState(false);
 
@@ -205,10 +220,17 @@ function Satellite({
     setEntered(true);
   }, []);
 
+  // 左右外圈抬高一层，避免被中圈大卡压死
+  const sideBoost =
+    slot.tier === 2
+      ? Math.round(Math.max(0, Math.abs(slot.cx - 50) - 32) / 6)
+      : 0;
+
   const style = {
     left: `${slot.cx}%`,
     top: `${slot.cy}%`,
     width: satWidth(clip.award, slot.tier),
+    zIndex: (slot.tier === 1 ? 3 : 2) + sideBoost,
     "--pane-delay": `${index * 45}ms`,
     "--float-delay": `${(index % 7) * -0.7}s`,
   } as CSSProperties;
@@ -222,8 +244,8 @@ function Satellite({
         nation ? " works-sat-nation" : ""
       }`}
       style={style}
-      onClick={onPromote}
-      title={`${clip.award} · ${clip.title}`}
+      onClick={onOpen}
+      title={`观看完整 · ${clip.award} · ${clip.title}`}
     >
       <div
         className={`works-sat-pivot works-pane aspect-[4/3] w-full ${
@@ -344,10 +366,19 @@ function HeroPreview({
             src={`/works/play/${encodeURIComponent(clip.id)}.mp4`}
             controls
             playsInline
-            preload="auto"
+            preload="metadata"
+            controlsList="nodownload"
+            // 微信 / 部分安卓 WebView
+            {...({
+              "webkit-playsinline": "true",
+              "x5-playsinline": "true",
+              "x5-video-player-type": "h5",
+            } as Record<string, string>)}
           />
         </div>
-        <p className="works-preview-hint">Esc / 点击外侧关闭</p>
+        <p className="works-preview-hint">
+          手机若未自动播放，请点画面上的播放按钮 · 点外侧关闭
+        </p>
       </div>
     </div>
   );
@@ -369,7 +400,7 @@ function Hero({
       className="works-hero works-hero-depth works-pane relative pointer-events-auto w-full cursor-pointer overflow-visible border-0 bg-transparent p-0 pt-5 text-left"
       style={{ "--pane-delay": "0ms" } as CSSProperties}
       onClick={onPreview}
-      title={`点击预览 · ${clip.title}`}
+      title={`观看完整成片 · ${clip.title}`}
     >
       <div
         className={`works-pane-frame works-hero-frame relative aspect-[16/10] w-full overflow-visible rounded-[4px]${
@@ -398,10 +429,13 @@ function Hero({
             <h3 className="mt-1 font-display text-sm text-white md:text-base">
               {clip.title}
             </h3>
+            <p className="mt-1 text-[10px] tracking-[0.18em] text-[var(--orange-soft)]">
+              点击观看完整
+            </p>
           </div>
         </div>
         {stamps.length > 0 ? (
-          <div className="works-stamp-stack pointer-events-none absolute left-1/2 top-0 z-20 -translate-x-1/2 -translate-y-1/2">
+          <div className="works-stamp-stack pointer-events-none absolute left-1/2 top-0 z-30 -translate-x-1/2 -translate-y-[62%]">
             {stamps.map((s, i) => (
               <span
                 key={`${clip.id}-${s}`}
@@ -457,7 +491,7 @@ function HonorRail({
         <span>
           校级 <strong>{stats.school}</strong>
         </span>
-        <span className="works-honor-stats-tip">中心放大 · 环绕不重叠</span>
+        <span className="works-honor-stats-tip">点击任意成片可看完整</span>
       </div>
       <div className="works-honor-rail" aria-label="荣誉滚动轨">
         <div className="works-honor-track">
@@ -473,7 +507,7 @@ function HonorRail({
                     : "works-honor-chip"
                 }
                 onClick={() => onPick(c.id)}
-                title={`切换中心 · ${c.title}`}
+                title={`观看完整 · ${c.title}`}
               >
                 <span
                   className={
@@ -543,8 +577,12 @@ export function WorksWall() {
   const [previewOpen, setPreviewOpen] = useState(false);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  function openPreview() {
-    flushSync(() => setPreviewOpen(true));
+  /** 点任意成片：切到中心并打开完整有声预览 */
+  function openFull(id?: string) {
+    flushSync(() => {
+      if (id) setHeroId(id);
+      setPreviewOpen(true);
+    });
     const v = previewVideoRef.current;
     if (!v) return;
     v.muted = false;
@@ -553,7 +591,7 @@ export function WorksWall() {
     const kick = () => {
       v.muted = false;
       void v.play().catch(() => {
-        /* 可用控件点播放 */
+        /* 手机常拦自动播，留给控件手动点 */
       });
     };
     kick();
@@ -633,7 +671,7 @@ export function WorksWall() {
         </div>
       </header>
 
-      <HonorRail clips={clips} onPick={setHeroId} />
+      <HonorRail clips={clips} onPick={openFull} />
 
       <div className="works-orbit">
         <div className="works-orbit-glow" aria-hidden />
@@ -648,12 +686,12 @@ export function WorksWall() {
               clip={clip}
               index={i}
               slot={slot}
-              onPromote={() => setHeroId(clip.id)}
+              onOpen={() => openFull(clip.id)}
             />
           ))}
 
           <div className="works-orbit-core works-orbit-core-hero pointer-events-none">
-            <Hero clip={hero} onPreview={openPreview} />
+            <Hero clip={hero} onPreview={() => openFull(hero.id)} />
           </div>
         </div>
 
@@ -662,8 +700,8 @@ export function WorksWall() {
           <button
             type="button"
             className="works-orbit-grid-hero"
-            onClick={openPreview}
-            title={`点击预览 · ${hero.title}`}
+            onClick={() => openFull(hero.id)}
+            title={`观看完整成片 · ${hero.title}`}
           >
             <div className="works-pane-frame relative aspect-[16/10] overflow-hidden rounded-[4px]">
               <Media
@@ -679,6 +717,9 @@ export function WorksWall() {
                 <h3 className="mt-0.5 font-display text-sm text-white">
                   {hero.title}
                 </h3>
+                <p className="mt-1 text-[10px] tracking-wider text-[var(--orange-soft)]">
+                  点击观看完整
+                </p>
               </div>
             </div>
           </button>
@@ -689,8 +730,8 @@ export function WorksWall() {
                 type="button"
                 className="works-orbit-grid-item"
                 style={{ "--pane-delay": `${i * 40}ms` } as CSSProperties}
-                onClick={() => setHeroId(clip.id)}
-                title={clip.title}
+                onClick={() => openFull(clip.id)}
+                title={`观看完整 · ${clip.title}`}
               >
                 <div className="works-pane-frame relative aspect-[4/3] overflow-hidden rounded-[3px]">
                   <Media
@@ -719,8 +760,8 @@ export function WorksWall() {
                 key={`ov-${clip.id}`}
                 type="button"
                 className="works-orbit-grid-item"
-                onClick={() => setHeroId(clip.id)}
-                title={clip.title}
+                onClick={() => openFull(clip.id)}
+                title={`观看完整 · ${clip.title}`}
               >
                 <div className="works-pane-frame relative aspect-[4/3] overflow-hidden rounded-[3px]">
                   <Media

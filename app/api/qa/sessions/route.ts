@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { contentSafetyGate, withAiDisclaimer } from "@/lib/ai";
 import { jsonError } from "@/lib/api/errors";
-import { requireStudentId } from "@/lib/auth/session";
+import { requireQaActorId } from "@/lib/auth/session";
 import {
   chatWithCozeBot,
   cozeUserId,
   isCozeChatConfigured,
 } from "@/lib/coze/chat";
+import { withCompanionGuard } from "@/lib/content/companionPrompt";
 import { buildFirstPrompt } from "@/lib/content/qaEngine";
-import { retrieveForQuestion } from "@/lib/content/retrieval";
 import { createSession, findStudent } from "@/lib/repo";
 
-/** Coze 知识库召回可能较慢 */
 export const maxDuration = 25;
 
+/** 首轮：固定脚本问 → 固定答；其余 → Coze 智能体（失败回落本地） */
 export async function POST(request: NextRequest) {
   try {
-    const studentId = await requireStudentId();
+    const studentId = await requireQaActorId();
     const body = await request.json();
     const question = String(body.question ?? "").trim();
 
@@ -35,13 +35,16 @@ export async function POST(request: NextRequest) {
     const stub = buildFirstPrompt(question);
     let prompt = stub.prompt;
     let cozeConversationId: string | null = null;
-    let source: "coze" | "local" = "local";
+    let source: "fixed_script" | "coze" | "local" =
+      stub.mode === "fixed" ? "fixed_script" : "local";
 
-    if (isCozeChatConfigured()) {
+    if (stub.mode === "agent" && isCozeChatConfigured()) {
       try {
         const coze = await chatWithCozeBot({
-          message: question,
+          message: withCompanionGuard(question),
           userId: cozeUserId(studentId),
+          maxPolls: 14,
+          pollMs: 650,
         });
         const gated = contentSafetyGate(withAiDisclaimer(coze.content));
         prompt = gated.text;
@@ -51,11 +54,6 @@ export async function POST(request: NextRequest) {
         console.error("[qa/sessions] Coze 回退本地追问", e);
       }
     }
-
-    const retrieval =
-      stub.retrieval.length > 0
-        ? stub.retrieval
-        : retrieveForQuestion(question, 4);
 
     const session = await createSession({
       student_id: studentId,
@@ -74,9 +72,10 @@ export async function POST(request: NextRequest) {
           student_name: student?.name ?? studentId,
           q_type: stub.q_type,
           prompt,
-          retrieval,
+          retrieval: stub.retrieval,
           status: session.status,
           source,
+          script_index: stub.script_index,
         },
       },
       { status: 201 },

@@ -51,6 +51,10 @@ export function InteractiveControl() {
   const [note, setNote] = useState("");
   const [cases, setCases] = useState<CabinCaseOption[]>([]);
   const [caseId, setCaseId] = useState("");
+  const [scriptTheme, setScriptTheme] = useState("飞行颠簸中的旅客纠纷");
+  const [debateTheme, setDebateTheme] = useState(
+    "客舱服务该不该「适度通融」",
+  );
   const [kickoff, setKickoff] = useState<KickoffRoom | null>(null);
   const [kickToken, setKickToken] = useState<string | null>(null);
 
@@ -80,11 +84,28 @@ export function InteractiveControl() {
     setLoading(true);
     setNote("");
     try {
+      const theme =
+        mode === "script"
+          ? scriptTheme.trim()
+          : mode === "debate"
+            ? debateTheme.trim()
+            : undefined;
+      if (mode === "script" && !theme) {
+        setNote("请先填写剧本主题");
+        setLoading(false);
+        return;
+      }
+      if (mode === "debate" && !theme) {
+        setNote("请先填写辩题");
+        setLoading(false);
+        return;
+      }
       const res = await fetch("/api/interactive/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode,
+          ...(theme ? { theme } : {}),
           ...(mode === "cabin" && caseId ? { case_id: caseId } : {}),
         }),
       });
@@ -97,7 +118,11 @@ export function InteractiveControl() {
       setNote(
         mode === "cabin"
           ? `已发起客舱情景：${title}`
-          : `已发起「${json.data.title}」，课堂学员端将自动同步本场活动。`,
+          : mode === "script"
+            ? `已发起剧本 · 主题「${json.data.theme}」`
+            : mode === "debate"
+              ? `已发起辩论 · 辩题「${json.data.theme}」`
+              : `已发起「${json.data.title}」，课堂学员端将自动同步本场活动。`,
       );
     } catch (e) {
       setNote(e instanceof Error ? e.message : "失败");
@@ -148,6 +173,31 @@ export function InteractiveControl() {
             </option>
           ))}
         </select>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="block space-y-1.5 rounded-sm border border-[var(--line)] bg-white p-3">
+          <span className="text-[10px] tracking-[0.2em] text-[var(--orange)]">
+            AI剧本 · 主题
+          </span>
+          <input
+            value={scriptTheme}
+            onChange={(e) => setScriptTheme(e.target.value)}
+            placeholder="一句话点出剧本情境，如：飞行颠簸中的旅客纠纷"
+            className="w-full border-b border-[var(--line)] bg-transparent py-1.5 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--orange)]"
+          />
+        </label>
+        <label className="block space-y-1.5 rounded-sm border border-[var(--line)] bg-white p-3">
+          <span className="text-[10px] tracking-[0.2em] text-[var(--orange)]">
+            课堂辩论 · 辩题
+          </span>
+          <input
+            value={debateTheme}
+            onChange={(e) => setDebateTheme(e.target.value)}
+            placeholder="如：客舱服务该不该「适度通融」"
+            className="w-full border-b border-[var(--line)] bg-transparent py-1.5 text-sm text-[var(--ink)] outline-none placeholder:text-[var(--muted)] focus:border-[var(--orange)]"
+          />
+        </label>
       </div>
 
       <div className="flex flex-wrap gap-2">

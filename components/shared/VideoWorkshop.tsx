@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { WorksArchiveList } from "@/components/shared/WorksArchiveList";
 import { cn } from "@/lib/utils";
 
 type Project = {
@@ -30,6 +31,7 @@ export function VideoWorkshop() {
   const [busy, setBusy] = useState(false);
   const [busyAction, setBusyAction] = useState("");
   const [msg, setMsg] = useState("");
+  const [worksKey, setWorksKey] = useState(0);
   const [safetyMsg, setSafetyMsg] = useState<{
     gate: string;
     reason: string;
@@ -111,6 +113,7 @@ export function VideoWorkshop() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "归档失败");
       setMsg(`已归档：${json.data.work_id}`);
+      setWorksKey((k) => k + 1);
       await load();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : "失败");
@@ -244,6 +247,8 @@ export function VideoWorkshop() {
       </div>
 
       {msg ? <p className="text-sm text-[var(--orange-deep)]">{msg}</p> : null}
+
+      <WorksArchiveList title="我的成片" refreshKey={worksKey} />
     </div>
   );
 }

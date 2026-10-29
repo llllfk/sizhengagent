@@ -18,16 +18,9 @@ export class DbUnavailableError extends Error {
 
 async function requirePg() {
   if (!hasDb()) throw new DbUnavailableError("未配置 DATABASE_URL");
+  // 库已就绪：默认不建表不灌数；仅 QI_HANG_ENSURE_PG=1 时走完整 ensure
   const ok = await ensurePg();
-  if (!ok) {
-    // 再探一次：避免热更新后 schemaReady 脏失败挡住跟帖等写操作
-    try {
-      const { query } = await import("@/lib/db");
-      await query("select 1::int as n");
-    } catch {
-      throw new DbUnavailableError("数据库初始化失败");
-    }
-  }
+  if (!ok) throw new DbUnavailableError("数据库不可用");
 }
 
 export function dataSourceLabel() {

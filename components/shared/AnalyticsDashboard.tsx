@@ -6,7 +6,7 @@ import {
   TypeBeaconBoard,
   buildClassRadarAxes,
 } from "@/components/shared/ProfileRadar";
-import { TypeGuide } from "@/components/shared/TypeGuide";
+import { WorksArchiveList } from "@/components/shared/WorksArchiveList";
 import {
   TYPE_LABEL,
   TYPE_TAGS,
@@ -84,6 +84,7 @@ function Bar({
 
 export function AnalyticsDashboard() {
   const [data, setData] = useState<Analytics | null>(null);
+  const [worksStudentId, setWorksStudentId] = useState<string | null>(null);
 
   const load = () =>
     fetch("/api/teacher/analytics")
@@ -184,8 +185,6 @@ export function AnalyticsDashboard() {
             mode="class"
           />
 
-          <TypeGuide highlight={dominant} />
-
           <div className="grid items-center gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <ProfileRadar
               axes={axes}
@@ -244,45 +243,67 @@ export function AnalyticsDashboard() {
           学员速览 · {data.student_rows.length} 人
         </p>
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {data.student_rows.map((s) => (
-            <div
-              key={s.name}
-              className="rounded-sm border border-[var(--line)] bg-white/90 px-3 py-3 transition hover:border-[var(--orange)]/40"
-            >
-              <div className="flex items-baseline justify-between gap-2">
-                <p className="font-display text-base text-[var(--ink)]">
-                  {s.name}
+          {data.student_rows.map((s) => {
+            const sid = s.student_id;
+            const open = sid && worksStudentId === sid;
+            return (
+              <div
+                key={sid || s.name}
+                className="rounded-sm border border-[var(--line)] bg-white/90 px-3 py-3 transition hover:border-[var(--orange)]/40"
+              >
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="font-display text-base text-[var(--ink)]">
+                    {s.name}
+                  </p>
+                  {sid ? (
+                    <select
+                      className="rounded-sm border border-[var(--line)] bg-white px-1.5 py-0.5 text-[10px] text-[var(--orange-deep)] outline-none"
+                      value={s.type_tag}
+                      onChange={(e) => void setType(sid, e.target.value)}
+                    >
+                      <option value="untyped">{TYPE_LABEL.untyped}</option>
+                      {TYPE_TAGS.map((k) => (
+                        <option key={k} value={k}>
+                          {TYPE_LABEL[k]}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span className="text-[10px] tracking-wider text-[var(--orange)]">
+                      {typeLabel[s.type_tag] ?? s.type_tag}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-[11px] text-[var(--muted)]">
+                  L{s.cognition_level} · 完成 {s.task_done} 项
+                  {(s.open_issues ?? 0) > 0
+                    ? ` · 待办 ${s.open_issues}`
+                    : ""}
                 </p>
-                {s.student_id ? (
-                  <select
-                    className="rounded-sm border border-[var(--line)] bg-white px-1.5 py-0.5 text-[10px] text-[var(--orange-deep)] outline-none"
-                    value={s.type_tag}
-                    onChange={(e) => void setType(s.student_id!, e.target.value)}
+                <p className="mt-1 line-clamp-1 text-[11px] text-[var(--muted)]">
+                  {s.weak_points.join("、") || "薄弱点未标注"}
+                </p>
+                {sid ? (
+                  <button
+                    type="button"
+                    className="mt-2 text-[10px] text-[var(--orange)] underline-offset-2 hover:underline"
+                    onClick={() =>
+                      setWorksStudentId((cur) => (cur === sid ? null : sid))
+                    }
                   >
-                    <option value="untyped">{TYPE_LABEL.untyped}</option>
-                    {TYPE_TAGS.map((k) => (
-                      <option key={k} value={k}>
-                        {TYPE_LABEL[k]}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
-                  <span className="text-[10px] tracking-wider text-[var(--orange)]">
-                    {typeLabel[s.type_tag] ?? s.type_tag}
-                  </span>
-                )}
+                    {open ? "收起作品" : "查看作品"}
+                  </button>
+                ) : null}
+                {open && sid ? (
+                  <WorksArchiveList
+                    className="mt-2"
+                    studentId={sid}
+                    title={`${s.name} · 成片`}
+                  />
+                ) : null}
               </div>
-              <p className="mt-1 text-[11px] text-[var(--muted)]">
-                L{s.cognition_level} · 完成 {s.task_done} 项
-                {(s.open_issues ?? 0) > 0
-                  ? ` · 待办 ${s.open_issues}`
-                  : ""}
-              </p>
-              <p className="mt-1 line-clamp-1 text-[11px] text-[var(--muted)]">
-                {s.weak_points.join("、") || "薄弱点未标注"}
-              </p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

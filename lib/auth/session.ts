@@ -78,14 +78,21 @@ export function sessionCookieName(portal: PortalKind) {
   return PORTAL_SESSION_COOKIES[portal];
 }
 
-/** 按端读取会话；未指定时优先旧 cookie，再依次试各端 */
+function roleOkForPortal(user: SessionUser, portal: PortalKind) {
+  if (portal === "community") return true;
+  if (portal === "student") return user.role === "student";
+  if (portal === "teacher") return user.role === "teacher";
+  return false;
+}
+
+/** 按端读取会话；未指定时优先各端 cookie，旧通用 cookie 最后兜底 */
 export async function getSessionUser(
   portal?: PortalKind | null,
 ): Promise<SessionUser | null> {
   const jar = await cookies();
   if (portal) {
     const scoped = decodeSession(jar.get(PORTAL_SESSION_COOKIES[portal])?.value);
-    if (scoped) return scoped;
+    if (scoped && roleOkForPortal(scoped, portal)) return scoped;
     // 社区端可用学生或教师身份
     if (portal === "community") {
       return (
@@ -94,14 +101,17 @@ export async function getSessionUser(
         decodeSession(jar.get(SESSION_COOKIE)?.value)
       );
     }
-    return decodeSession(jar.get(SESSION_COOKIE)?.value);
+    // 旧通用 cookie 仅当角色与当前端匹配时才用，避免教师残留会话把学生端踢回登录
+    const legacy = decodeSession(jar.get(SESSION_COOKIE)?.value);
+    if (legacy && roleOkForPortal(legacy, portal)) return legacy;
+    return null;
   }
 
   return (
-    decodeSession(jar.get(SESSION_COOKIE)?.value) ??
     decodeSession(jar.get(PORTAL_SESSION_COOKIES.student)?.value) ??
     decodeSession(jar.get(PORTAL_SESSION_COOKIES.teacher)?.value) ??
-    decodeSession(jar.get(PORTAL_SESSION_COOKIES.community)?.value)
+    decodeSession(jar.get(PORTAL_SESSION_COOKIES.community)?.value) ??
+    decodeSession(jar.get(SESSION_COOKIE)?.value)
   );
 }
 
@@ -134,6 +144,32 @@ export async function requireStudentId(): Promise<string> {
 /** 同 requireStudentId，供已有路由引用 */
 export async function studentIdFromSession(): Promise<string> {
   return requireStudentId();
+}
+
+/**
+ * 学伴答疑参与者：学生正式使用；教师可体验（演示用）。
+ * 返回写入 qa_session.student_id 的身份键。
+ */
+export async function requireQaActor(): Promise<SessionUser> {
+  const user =
+    (await getSessionUser("student")) ??
+    (await getSessionUser("teacher")) ??
+    (await getSessionUser());
+  if (!user) throw new AuthError("请先登录");
+  if (user.role !== "student" && user.role !== "teacher") {
+    throw new AuthError("需要登录后使用答疑");
+  }
+  return user;
+}
+
+export async function requireQaActorId(): Promise<string> {
+  const user = await requireQaActor();
+  if (user.role === "teacher") {
+    return `teacher:${user.username}`;
+  }
+  const sid = user.student_id || user.username;
+  if (!sid) throw new AuthError("学员未绑定学号");
+  return sid;
 }
 
 export async function requireUser(

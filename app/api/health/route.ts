@@ -4,8 +4,8 @@ import { ensurePg, seedPgIfNeeded } from "@/lib/repo/ensure";
 
 /**
  * GET /api/health
- * - 默认：探活 + 确保表结构
- * - ?seed=1：空库时补一次种子数据（运维/首次部署用，勿当登录依赖）
+ * - 默认：只 select 1 探活
+ * - ?seed=1：空库灌种子（需同时设 QI_HANG_ENSURE_PG=1 才会建表同步）
  */
 export async function GET(request: NextRequest) {
   let db: "unconfigured" | "ok" | "error" = "unconfigured";
@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
   let seeded: boolean | undefined;
   if (hasDb()) {
     try {
-      await ensurePg();
       const wantSeed = request.nextUrl.searchParams.get("seed") === "1";
       if (wantSeed) {
+        await ensurePg();
         seeded = await seedPgIfNeeded();
       }
       const r = await query<{ n: string }>("select 1::text as n");

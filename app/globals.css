@@ -704,7 +704,7 @@ body {
   left: 50%;
   top: 50%;
   z-index: 3;
-  width: min(37%, 370px);
+  width: min(34%, 350px);
   translate: -50% -50%;
   transform-style: preserve-3d;
   pointer-events: none;
@@ -712,16 +712,16 @@ body {
   transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* 中心主视觉：再放大一档 */
+/* 中心主视觉：控制体量，避免挡住左右邻卡与顶章 */
 .works-orbit-core-hero {
-  width: min(40%, 420px);
+  width: min(36%, 380px);
   top: 50%;
   overflow: visible;
 }
 
 /* 国家级：中间再略放大 */
 .works-orbit-core-nation {
-  width: min(42%, 440px);
+  width: min(38%, 400px);
 }
 
 .works-sat-caption {
@@ -735,7 +735,7 @@ body {
 
 .works-orbit-overflow {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(154px, 1fr));
   gap: 0.75rem;
   margin-top: 0.75rem;
 }
@@ -758,7 +758,7 @@ body {
 
 .works-orbit-grid-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
   gap: 0.65rem;
   margin-top: 0.75rem;
 }

@@ -35,7 +35,7 @@ export function galleryPublicRel(id: string): string {
 export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "lion-nation",
-    file: "1.国家级：醒狮·少年路.mp4",
+    file: "醒狮-新1.mp4",
     title: "醒狮·少年路",
     award: "国家级·教育部「魅力非遗」优秀原创作品",
     tag: "文化自信",
@@ -46,7 +46,7 @@ export const WORKS_GALLERY: WorkClip[] = [
     id: "grow-up",
     file: "5.国家级优秀：长大后就成了您.mp4",
     title: "长大后，我就成了您",
-    award: "国家级·「我心中的思政课」大学生微电影展示活动",
+    award: "国家级·第六届「我心中的思政课」大学生微电影展示活动",
     tag: "榜样力量",
     size: "wide",
     ring: "inner",
@@ -90,7 +90,7 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "campus-safe",
     file: "10.校园安全.mp4",
-    title: "校园安全",
+    title: "完美受害者（校园安全）",
     award: "校本专题",
     tag: "安全底线",
     size: "tall",
@@ -126,8 +126,8 @@ export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "rescue-nation",
     file: "2.国家级：紧急救助.mp4",
-    title: "成为国航乘务员",
-    award: "国家级",
+    title: "乘翼归来",
+    award: "国家级 ·第五届“我心中的思政课”大学生微电影展示活动",
     tag: "空乘梦想",
     size: "sm",
     ring: "outer",
@@ -136,7 +136,7 @@ export const WORKS_GALLERY: WorkClip[] = [
     id: "walk-bronze",
     file: "省级三等奖：行走的思政课.mp4",
     title: "思政青焰",
-    award: "省级三等奖",
+    award: "省级·“打卡广东红”优秀短视频",
     tag: "行走思政",
     size: "sm",
     ring: "outer",

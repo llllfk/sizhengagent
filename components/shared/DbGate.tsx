@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 type DbState = "loading" | "ok" | "off";
 
-/** 跨路由复用，避免 PortalShell 重挂时每次「正在连接数据库…」 */
+/** 跨路由复用，避免 PortalShell 重挂时每次卡住 */
 let healthCache: { state: Exclude<DbState, "loading">; at: number } | null =
   null;
 const HEALTH_TTL_MS = 5 * 60_000;
@@ -15,7 +15,7 @@ function probeHealth(): Promise<Exclude<DbState, "loading">> {
     return Promise.resolve(healthCache.state);
   }
   if (healthInflight) return healthInflight;
-  healthInflight = fetch("/api/health")
+  healthInflight = fetch("/api/health", { credentials: "include" })
     .then((r) => r.json())
     .then((j) => {
       const next: Exclude<DbState, "loading"> =
@@ -34,7 +34,10 @@ function probeHealth(): Promise<Exclude<DbState, "loading">> {
   return healthInflight;
 }
 
-/** 无 DATABASE_URL / 库不可用时，不渲染业务内容 */
+/**
+ * 库探活门闸。
+ * 探活中先渲染业务（八模块等静态页不必干等）；确认不可用再提示。
+ */
 export function DbGate({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<DbState>(() => {
     if (healthCache && Date.now() - healthCache.at < HEALTH_TTL_MS) {
@@ -52,14 +55,6 @@ export function DbGate({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, []);
-
-  if (state === "loading") {
-    return (
-      <p className="animate-pulse text-sm text-[var(--muted)]">
-        正在连接数据库…
-      </p>
-    );
-  }
 
   if (state === "off") {
     return (

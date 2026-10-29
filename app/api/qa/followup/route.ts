@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { contentSafetyGate, withAiDisclaimer } from "@/lib/ai";
 import { jsonError } from "@/lib/api/errors";
-import { requireStudent } from "@/lib/auth/session";
+import { requireQaActor, requireQaActorId } from "@/lib/auth/session";
 import {
   chatWithCozeBot,
   cozeUserId,
   isCozeChatConfigured,
 } from "@/lib/coze/chat";
+import { withCompanionGuard } from "@/lib/content/companionPrompt";
 import { buildFollowupPrompt } from "@/lib/content/qaEngine";
-import { retrieveForQuestion } from "@/lib/content/retrieval";
 import {
   appendFollowup,
   createEscalation,
@@ -18,9 +18,11 @@ import {
 
 export const maxDuration = 25;
 
+/** 追问：固定链路继续脚本；开放题走 Coze */
 export async function POST(request: NextRequest) {
   try {
-    const me = await requireStudent();
+    await requireQaActor();
+    const myId = await requireQaActorId();
     const body = await request.json();
     const sessionId = String(body.session_id ?? "");
     const answer = String(body.answer ?? "").trim();
@@ -44,27 +46,29 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "会话不存在" }, { status: 404 });
     }
-    const myId = me.student_id || me.username;
     if (session.student_id !== myId) {
       return NextResponse.json({ error: "无权操作此会话" }, { status: 403 });
     }
 
     const local = buildFollowupPrompt({
+      openingQuestion: session.question,
       q_type: session.q_type,
       round: session.round,
       answer,
     });
 
     let prompt = local.prompt;
-    let source: "coze" | "local" = "local";
+    let source: "fixed_script" | "coze" | "local" =
+      local.mode === "fixed" ? "fixed_script" : "local";
 
-    // 转接教师前仍可用本地收束话术；未转接时优先走 Coze 多轮
-    if (isCozeChatConfigured() && !local.shouldEscalate) {
+    if (local.mode === "agent" && isCozeChatConfigured() && !local.shouldEscalate) {
       try {
         const coze = await chatWithCozeBot({
-          message: answer,
+          message: withCompanionGuard(answer),
           userId: cozeUserId(session.student_id),
           conversationId: session.coze_conversation_id,
+          maxPolls: 14,
+          pollMs: 650,
         });
         const gated = contentSafetyGate(withAiDisclaimer(coze.content));
         prompt = gated.text;
@@ -96,21 +100,18 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const retrieval = retrieveForQuestion(
-      `${session.question} ${answer}`,
-      4,
-    );
-
     return NextResponse.json({
       data: {
         session_id: sessionId,
         prompt,
         escalate_hint: local.shouldEscalate,
+        escalate_note: local.escalateHint,
         escalation,
-        retrieval,
+        retrieval: local.retrieval,
         round: updated?.round ?? session.round,
         status: updated?.status ?? session.status,
         source,
+        script_index: local.script_index,
       },
     });
   } catch (e) {

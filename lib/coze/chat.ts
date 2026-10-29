@@ -51,8 +51,10 @@ export async function chatWithCozeBot(input: {
   message: string;
   userId: string;
   conversationId?: string | null;
-  /** 工坊长文生成可加大轮询次数（默认 12×800ms） */
+  /** 工坊长文可加大；学伴宜偏小以加快体感 */
   maxPolls?: number;
+  /** 轮询间隔 ms，默认 900；学伴可略缩短 */
+  pollMs?: number;
   /** 不传则走启航学伴 AGENT_BOT_ID */
   botId?: string;
 }): Promise<CozeChatResult> {
@@ -107,11 +109,11 @@ export async function chatWithCozeBot(input: {
   ]);
 
   let status = startJson.data.status ?? "in_progress";
-  // 默认约 20×900ms，覆盖知识库召回偏慢；仍受路由 maxDuration 约束
   const maxPolls = input.maxPolls ?? 20;
+  const pollMs = input.pollMs ?? 900;
   for (let i = 0; i < maxPolls; i++) {
     if (terminal.has(status)) break;
-    await sleep(900);
+    await sleep(pollMs);
     const retRes = await cozeFetch(
       `/v3/chat/retrieve?conversation_id=${encodeURIComponent(conversationId)}&chat_id=${encodeURIComponent(chatId)}`,
     );

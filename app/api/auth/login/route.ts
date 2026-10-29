@@ -5,7 +5,6 @@ import {
   parsePortal,
   sessionCookieName,
   sessionCookieOptions,
-  SESSION_COOKIE,
   type PortalKind,
 } from "@/lib/auth/session";
 import { hasDb } from "@/lib/db";
@@ -67,11 +66,9 @@ export async function POST(request: NextRequest) {
     const res = NextResponse.json({
       data: { user, href, portal },
     });
-    // 分端写入；同时写入旧版通用 cookie 作兜底。
-    // 注意：不要在同一次响应里再 Set-Cookie Max-Age=0 清空另一条——
-    // Coze CDN 会把多条拼成一行，SameSite=lax 后跟逗号会被浏览器判无效并丢弃会话。
+    // 只写一条分端 Cookie。同响应写两条 Set-Cookie 时，
+    // Coze CDN 常拼成一行，浏览器判无效 → 进页后 /api/auth/me 401 又踢回登录。
     res.cookies.set(sessionCookieName(portal), token, sessionCookieOptions);
-    res.cookies.set(SESSION_COOKIE, token, sessionCookieOptions);
     return res;
   } catch (e) {
     return jsonError(e, "登录失败");

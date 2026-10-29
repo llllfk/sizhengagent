@@ -12,8 +12,7 @@ export default function CompanionPage() {
           启发式答疑
         </h1>
         <p className="max-w-2xl text-sm leading-7 text-[var(--muted)]">
-          24 小时在线智能学伴。不直接给答案，按「你怎么看 → 依据是什么 →
-          换个情境」引导思考；满轮未解将自动转交老师跟进。
+          「人民至上 / 东航下跪」等示范问走固定脚本；其他问题由智能学伴追问。右侧检索首条固定展示习著作依据，满轮未解可转教师。
         </p>
       </header>
 

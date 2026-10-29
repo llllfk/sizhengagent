@@ -16,6 +16,7 @@ const studentItems: NavItem[] = [
 const teacherItems: NavItem[] = [
   { href: "/modules", label: "八模块总览" },
   { href: "/workbench", label: "工作台总览" },
+  { href: "/companion", label: "体验学伴答疑" },
   { href: "/escalations", label: "疑难转接队列" },
   { href: "/interactive-control", label: "课中互动调度" },
   { href: "/works", label: "成果库" },

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { writeTabPortal, type TabPortal } from "@/lib/auth/portalClient";
+import { clearSessionCache } from "@/components/shared/useSession";
 import { cn } from "@/lib/utils";
 
 const PORTAL_LINE: Record<string, string> = {
@@ -51,6 +52,7 @@ export function EmbarkGate({
   const [gone, setGone] = useState(false);
 
   useEffect(() => {
+    clearSessionCache();
     if (portal === "student" || portal === "teacher" || portal === "community") {
       writeTabPortal(portal as TabPortal);
     }
