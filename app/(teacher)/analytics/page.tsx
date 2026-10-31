@@ -10,7 +10,7 @@ export default function AnalyticsPage() {
         </p>
         <h1 className="font-brand text-4xl text-[var(--ink)]">学情看板</h1>
         <p className="max-w-xl text-sm text-[var(--muted)]">
-          三型灯牌 + 班级雷达，一张图讲清因材施教。
+          五型灯牌 + 班级雷达，一张图讲清因材施教。
         </p>
       </header>
       <AnalyticsDashboard />

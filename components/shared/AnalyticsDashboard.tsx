@@ -152,7 +152,7 @@ export function AnalyticsDashboard() {
                 {data.data_source === "postgres_live" ? " · LIVE" : ""}
               </p>
               <h3 className="mt-1 font-display text-2xl text-[var(--ink)]">
-                三型灯牌 · 班级雷达
+                五型灯牌 · 班级雷达
               </h3>
             </div>
             <div className="flex flex-wrap gap-3 text-center">
