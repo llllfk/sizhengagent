@@ -31,6 +31,12 @@
   --color-accent: #d4552a;
   --color-muted: #8a735c;
   --color-line: #f0ddd0;
+
+  /* 不依赖 Google Fonts 构建；系统中文字体栈保证扣子沙箱可编译 */
+  --font-brand: "STKaiti", "KaiTi", "华文楷体", "Songti SC", cursive;
+  --font-display: "Songti SC", "STSong", "SimSun", "Noto Serif SC", serif;
+  --font-body: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    "Noto Sans SC", sans-serif;
 }
 
 html,
@@ -115,11 +121,11 @@ body {
 }
 
 .font-display {
-  font-family: var(--font-display), "KaiTi", "STKaiti", serif;
+  font-family: var(--font-display);
 }
 
 .font-brand {
-  font-family: var(--font-brand), "Ma Shan Zheng", "KaiTi", cursive;
+  font-family: var(--font-brand);
 }
 
 .portal-root {
