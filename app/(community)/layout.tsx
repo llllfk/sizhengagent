@@ -1,7 +1,7 @@
 import { PortalShell } from "@/components/shared/PortalNav";
 
 const items = [
-  { href: "/forum", label: "研讨论坛" },
+  { href: "/forum", label: "「云思坞」研讨站" },
   { href: "/highlights", label: "精华集" },
 ];
 

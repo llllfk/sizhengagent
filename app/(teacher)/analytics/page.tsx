@@ -1,4 +1,3 @@
-import { Panel } from "@/components/ui/Card";
 import { AnalyticsDashboard } from "@/components/shared/AnalyticsDashboard";
 
 export default function AnalyticsPage() {
@@ -10,7 +9,7 @@ export default function AnalyticsPage() {
         </p>
         <h1 className="font-brand text-4xl text-[var(--ink)]">学情看板</h1>
         <p className="max-w-xl text-sm text-[var(--muted)]">
-          五型灯牌 + 班级雷达，一张图讲清因材施教。
+          近一个月参与度 · 五型灯牌 · 班级雷达，一张图讲清课堂温度与因材施教。
         </p>
       </header>
       <AnalyticsDashboard />

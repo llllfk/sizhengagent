@@ -35,7 +35,7 @@ function fromKnowledge(s: KnowledgeSnippet): RetrievalHit {
     id: s.snippet_id,
     library: "knowledge",
     kind_label: isXiWorks(s)
-      ? "习著作"
+      ? "《习近平著作选读》"
       : (KIND_LABEL[s.kind] ?? "答疑知识库"),
     title: s.title,
     quote: s.teaching_point || s.summary.slice(0, 72),
@@ -106,6 +106,11 @@ export function retrieveForQuestion(question: string, limit = 4): RetrievalHit[]
   return out;
 }
 
+function hitBySnippetId(id: string): RetrievalHit | null {
+  const s = KNOWLEDGE_CORPUS.find((x) => x.snippet_id === id);
+  return s ? fromKnowledge(s) : null;
+}
+
 /**
  * 固定脚本侧栏：仍保证第一条习著作，其后按轮次关键词补充
  */
@@ -115,13 +120,24 @@ export function retrieveForFixedScript(opts: {
   limit?: number;
 }): RetrievalHit[] {
   const limit = opts.limit ?? 4;
+
+  /** 「什么是人民至上」：两条习著作原文 + 一条民航相关 */
+  if (opts.scriptIndex === 0) {
+    const curated = [
+      "kb_dream_people",
+      "kb_jiangshan_people",
+      "kb_pol_2014",
+    ]
+      .map(hitBySnippetId)
+      .filter((h): h is RetrievalHit => Boolean(h));
+    if (curated.length > 0) return curated.slice(0, limit);
+  }
+
   const extra =
-    opts.scriptIndex === 0
-      ? "人民至上 生命至上 我将无我"
-      : opts.scriptIndex === 1
-        ? "东航 下跪 服务边界 人格尊严 民用航空法"
-        : opts.scriptIndex === 2
-          ? "客舱冲突 报告 取证 安全红线 第171条 处置"
-          : "人民至上 服务边界 履职";
+    opts.scriptIndex === 1
+      ? "东航 下跪 服务边界 人格尊严 民用航空法"
+      : opts.scriptIndex === 2
+        ? "客舱冲突 报告 取证 安全红线 第171条 处置"
+        : "人民至上 服务边界 履职";
   return retrieveForQuestion(`${opts.query} ${extra}`, limit);
 }

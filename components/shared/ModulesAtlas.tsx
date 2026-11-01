@@ -32,7 +32,7 @@ const MODULES: Mod[] = [
   },
   {
     no: "③",
-    title: "云思坞研讨站",
+    title: "「云思坞」研讨站",
     blurb: "议题碰撞 · 精华回灌",
     ring: "deep",
     href: "/forum",

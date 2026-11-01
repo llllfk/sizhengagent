@@ -70,7 +70,12 @@ export async function POST(request: NextRequest) {
       await sleep(FIXED_SCRIPT_THINK_MS);
     }
 
-    if (local.mode === "agent" && isCozeChatConfigured() && !local.shouldEscalate) {
+    if (
+      local.mode === "agent" &&
+      local.useCoze !== false &&
+      isCozeChatConfigured() &&
+      !local.shouldEscalate
+    ) {
       try {
         const coze = await chatWithCozeBot({
           message: withCompanionGuard(answer),
@@ -102,10 +107,11 @@ export async function POST(request: NextRequest) {
 
     let escalation = null;
     if (local.shouldEscalate) {
+      const ask = answer.slice(0, 80);
       escalation = await createEscalation({
         session_id: sessionId,
         student_id: session.student_id,
-        summary: `学员就「${session.question.slice(0, 36)}」追问多轮后仍难形成可执行预案，已转入教师队列。`,
+        summary: `学员就「${session.question.slice(0, 36)}」希望老师澄清：${ask}`,
       });
     }
 

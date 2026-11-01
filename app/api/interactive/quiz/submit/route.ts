@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { withAiDisclaimer } from "@/lib/ai";
 import { jsonError } from "@/lib/api/errors";
-import { requireStudentId } from "@/lib/auth/session";
+import {
+  requireInteractiveActor,
+  requireInteractiveActorId,
+} from "@/lib/auth/session";
 import { submitQuiz } from "@/lib/interactive/rooms";
 import { hasDb } from "@/lib/db";
 import { applyQuizResult, DbUnavailableError } from "@/lib/repo";
 
 export async function POST(request: NextRequest) {
   try {
-    const studentId = await requireStudentId();
+    const me = await requireInteractiveActor();
+    const actorId = await requireInteractiveActorId();
     const body = await request.json();
     const roomId = String(body.room_id ?? "");
     const answers = (body.answers ?? {}) as Record<string, number>;
@@ -19,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const result = submitQuiz({
       room_id: roomId,
-      student_id: studentId,
+      student_id: actorId,
       answers,
     });
     if (!result) {
@@ -33,10 +37,10 @@ export async function POST(request: NextRequest) {
 
     let profileWrite: Awaited<ReturnType<typeof applyQuizResult>> | null =
       null;
-    if (hasDb()) {
+    if (hasDb() && me.role === "student") {
       try {
         profileWrite = await applyQuizResult({
-          student_id: studentId,
+          student_id: actorId,
           room_id: roomId,
           score: result.score,
           total: result.total,

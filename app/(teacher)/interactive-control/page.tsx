@@ -10,10 +10,10 @@ export default function InteractiveControlPage() {
         </p>
         <h1 className="font-brand text-4xl text-[var(--ink)]">互动调度台</h1>
         <p className="max-w-xl text-sm text-[var(--muted)]">
-          一键发起五式 · 实时看参与人数 · AI 异常时可结束本场降级处理
+          一键发起 · 同屏看学员互动 · 教师也可直接参与，无需再切学生账号
         </p>
       </header>
-      <Panel title="发起与监控" hint="推荐先发起「剧本」或「闯关」">
+      <Panel title="发起与同屏互动">
         <InteractiveControl />
       </Panel>
     </div>

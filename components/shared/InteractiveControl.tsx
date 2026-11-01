@@ -6,6 +6,7 @@ import {
   InteractiveKickoff,
   type KickoffRoom,
 } from "@/components/shared/InteractiveKickoff";
+import { InteractiveLive } from "@/components/shared/InteractiveLive";
 import { cn } from "@/lib/utils";
 
 type Mode = "cabin" | "script" | "wordcard" | "quiz" | "debate";
@@ -259,15 +260,46 @@ export function InteractiveControl() {
                 : null}
             </p>
             {active.status === "live" ? (
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-wrap gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={() => void endLive()}>
                   结束本场
                 </Button>
+                <a
+                  href="#teacher-live-stage"
+                  className="inline-flex items-center rounded-sm border border-[var(--orange)]/40 bg-[var(--orange-fog)] px-3 py-2 text-sm text-[var(--orange-deep)] transition hover:border-[var(--orange)]"
+                >
+                  进入本场互动 ↓
+                </a>
               </div>
             ) : null}
           </div>
         )}
       </div>
+
+      {active?.status === "live" ? (
+        <section
+          id="teacher-live-stage"
+          className="space-y-3 rounded-sm border border-[var(--orange)]/30 bg-white/95 p-4 shadow-[0_16px_40px_rgba(232,120,47,0.12)] md:p-5"
+        >
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <p className="text-[10px] tracking-[0.28em] text-[var(--orange)]">
+                教师同屏 · 可看可参与
+              </p>
+              <h3 className="mt-1 font-display text-xl text-[var(--ink)]">
+                本场互动舱
+              </h3>
+              <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                同步查看学员接龙 / 发言，也可直接参与（发言会标注「老师」）。
+              </p>
+            </div>
+            <span className="rounded-sm bg-[var(--orange)] px-2 py-0.5 text-[10px] text-white">
+              LIVE
+            </span>
+          </div>
+          <InteractiveLive />
+        </section>
+      ) : null}
     </div>
   );
 }

@@ -8,8 +8,11 @@ import {
 import {
   FIXED_QA_DEMO_PROMPTS,
   FIXED_QA_ESCALATE_HINT,
+  QA_ESCALATE_OFFER,
+  QA_RESOLVED_REPLY,
   matchFixedFollowup,
   matchFixedQuestion,
+  studentDeclinesTeacher,
 } from "@/lib/content/fixedQaScript";
 import {
   retrieveForFixedScript,
@@ -96,10 +99,44 @@ export type FollowupPromptResult = {
   escalateHint?: string;
   retrieval: RetrievalHit[];
   script_index: number | null;
+  /** false：满轮邀请/结案，不走 Coze 覆盖 */
+  useCoze?: boolean;
 };
 
+function decideEscalateResult(
+  answer: string,
+  retrieval: RetrievalHit[],
+  script_index: number | null,
+  mode: "fixed" | "agent",
+): FollowupPromptResult {
+  if (studentDeclinesTeacher(answer)) {
+    return {
+      mode,
+      prompt: contentSafetyGate(QA_RESOLVED_REPLY).text,
+      shouldEscalate: false,
+      retrieval,
+      script_index,
+      useCoze: false,
+    };
+  }
+  return {
+    mode,
+    prompt: contentSafetyGate(
+      withAiDisclaimer(
+        "已记下你的问题，正在转给老师。老师答复后本页会同步；也可新开一轮继续问学伴。",
+      ),
+    ).text,
+    shouldEscalate: true,
+    escalateHint: FIXED_QA_ESCALATE_HINT,
+    retrieval,
+    script_index,
+    useCoze: false,
+  };
+}
+
 /**
- * 追问：开场若命中固定脚本则继续脚本；否则智能体本地追问兜底
+ * 追问：开场若命中固定脚本则继续脚本；否则智能体本地追问兜底。
+ * 满轮不自动转教师：先邀请；学员说已解决则不转，仍有疑问才进教师队列。
  */
 export function buildFollowupPrompt(input: {
   openingQuestion: string;
@@ -109,16 +146,26 @@ export function buildFollowupPrompt(input: {
 }): FollowupPromptResult {
   const fixed = matchFixedFollowup(input.openingQuestion, input.round);
   if (fixed) {
+    const retrieval = retrieveForFixedScript({
+      scriptIndex: fixed.index,
+      query: `${input.openingQuestion} ${input.answer}`,
+      limit: 4,
+    });
+    if (fixed.phase === "decide") {
+      return decideEscalateResult(
+        input.answer,
+        retrieval,
+        fixed.index,
+        "fixed",
+      );
+    }
+    const promptText =
+      fixed.phase === "offer" ? QA_ESCALATE_OFFER : fixed.turn.answer;
     return {
       mode: "fixed",
-      prompt: contentSafetyGate(fixed.turn.answer).text,
-      shouldEscalate: fixed.shouldEscalate,
-      escalateHint: fixed.shouldEscalate ? FIXED_QA_ESCALATE_HINT : undefined,
-      retrieval: retrieveForFixedScript({
-        scriptIndex: fixed.index,
-        query: `${input.openingQuestion} ${input.answer}`,
-        limit: 4,
-      }),
+      prompt: contentSafetyGate(promptText).text,
+      shouldEscalate: false,
+      retrieval,
       script_index: fixed.index,
     };
   }
@@ -130,18 +177,18 @@ export function buildFollowupPrompt(input: {
     4,
   );
 
+  if (nextRound >= 3) {
+    return decideEscalateResult(input.answer, retrieval, null, "agent");
+  }
+
   if (nextRound >= 2 || !step) {
     return {
       mode: "agent",
-      prompt: contentSafetyGate(
-        withAiDisclaimer(
-          "本轮追问已满。请用一句话写出最想请老师澄清的一点，系统将转入教师队列。",
-        ),
-      ).text,
-      shouldEscalate: true,
-      escalateHint: FIXED_QA_ESCALATE_HINT,
+      prompt: contentSafetyGate(withAiDisclaimer(QA_ESCALATE_OFFER)).text,
+      shouldEscalate: false,
       retrieval,
       script_index: null,
+      useCoze: false,
     };
   }
 
@@ -178,12 +225,7 @@ export function buildFollowupPrompt(input: {
   };
 }
 
-/** 示范问：固定脚本问 + 若干开放题 */
-export const DEMO_PROMPTS = [
-  ...FIXED_QA_DEMO_PROMPTS,
-  "客舱突发旅客纠纷时，乘务员该如何平衡规则与人情？",
-  "颠簸中旅客拒绝回座，我该先讲安全还是先安抚情绪？",
-  "三个敬畏如何落到一次平凡航班的客舱巡视？",
-];
+/** 示范问：仅展示固定脚本前三问（不含转接提示问） */
+export const DEMO_PROMPTS = FIXED_QA_DEMO_PROMPTS.slice(0, 3);
 
 export { SAFETY_DEMO_SAMPLES } from "@/lib/ai";

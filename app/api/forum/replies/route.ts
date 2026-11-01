@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** DELETE ?reply_id= / body.reply_id — 仅跟帖人可删 */
+/** DELETE ?reply_id= / body.reply_id — 本人或教师可删 */
 export async function DELETE(request: NextRequest) {
   try {
     const me = await requireUser();
@@ -72,9 +72,11 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "跟帖不存在" }, { status: 404 });
     }
     const mine = authorIdsOf(me);
-    if (!mine.includes(existing.author_id)) {
+    const canDelete =
+      me.role === "teacher" || mine.includes(existing.author_id);
+    if (!canDelete) {
       return NextResponse.json(
-        { error: "只能删除自己的跟帖" },
+        { error: "只能删除自己的跟帖，教师可删除任意跟帖" },
         { status: 403 },
       );
     }

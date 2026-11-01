@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jsonError } from "@/lib/api/errors";
-import { requireStudent, requireUser } from "@/lib/auth/session";
+import {
+  interactiveDisplayName,
+  requireInteractiveActor,
+  requireInteractiveActorId,
+  requireUser,
+} from "@/lib/auth/session";
 import {
   getActiveRoom,
   getRoom,
@@ -33,8 +38,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const me = await requireStudent();
-    const studentId = me.student_id || me.username;
+    const me = await requireInteractiveActor();
+    const actorId = await requireInteractiveActorId();
     const body = await request.json();
     const roomId = String(body.room_id ?? "");
     const side = String(body.side ?? "pro") as DebateSide;
@@ -50,11 +55,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "side 须为 pro 或 con" }, { status: 400 });
     }
 
-    const student = await findStudent(studentId);
+    const student =
+      me.role === "student" ? await findStudent(actorId) : null;
     const room = submitDebateSpeech({
       room_id: roomId,
-      student_id: studentId,
-      name: student?.name ?? me.display_name,
+      student_id: actorId,
+      name: interactiveDisplayName(me, student?.name),
       side,
       content,
     });

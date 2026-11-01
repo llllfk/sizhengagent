@@ -117,7 +117,7 @@ export function HighlightsGallery() {
 
       {items.length === 0 ? (
         <p className="text-sm text-[var(--muted)]">
-          暂无精华。可在研讨论坛点击「沉淀精华」。
+          暂无精华。可在「云思坞」研讨站点击「沉淀精华」。
         </p>
       ) : null}
     </div>

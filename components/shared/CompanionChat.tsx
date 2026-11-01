@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/Button";
 import { useSession } from "@/components/shared/useSession";
 import { writeTabPortal } from "@/lib/auth/portalClient";
 import { cn } from "@/lib/utils";
-import { SAFETY_DEMO_SAMPLES } from "@/lib/ai";
 import { DEMO_PROMPTS } from "@/lib/content/qaEngine";
 
 type Msg = {
@@ -337,9 +336,7 @@ export function CompanionChat() {
                   : "知识类"}
             </span>
           ) : (
-            <span className="text-[var(--muted)]">
-              等待首问 · 内容安全双闸门
-            </span>
+            <span className="text-[var(--muted)]">等待首问</span>
           )}
           {user ? (
             <span className="rounded-sm border border-[var(--line)] bg-white px-2 py-0.5 text-[var(--muted)]">
@@ -406,9 +403,6 @@ export function CompanionChat() {
                   </span>
                 ))}
               </div>
-              <p className="text-sm font-medium text-[var(--muted)]">
-                示范问（前几条为固定脚本，其后走智能体）
-              </p>
               <div className="flex flex-col gap-2">
                 {DEMO_PROMPTS.map((p) => (
                   <button
@@ -421,24 +415,6 @@ export function CompanionChat() {
                     {p}
                   </button>
                 ))}
-              </div>
-              <div className="border-t border-dashed border-[var(--line)] pt-3">
-                <p className="mb-2 text-[10px] tracking-[0.2em] text-[var(--muted)]">
-                  内容安全双闸门
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {SAFETY_DEMO_SAMPLES.map((s) => (
-                    <button
-                      key={s.label}
-                      type="button"
-                      onClick={() => void send(s.text)}
-                      disabled={loading}
-                      className="rounded-sm border border-dashed border-[var(--orange)]/40 bg-white px-2.5 py-1.5 text-[11px] text-[var(--orange-deep)] transition hover:bg-[var(--orange-fog)] disabled:cursor-not-allowed disabled:opacity-55"
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           ) : (
@@ -510,7 +486,7 @@ export function CompanionChat() {
           <div className="flex items-center justify-between gap-2">
             <div>
               <p className="text-[10px] tracking-[0.28em] text-[var(--orange)]">
-                检索可见 · RAG
+                知识依据
               </p>
               <h3 className="mt-1 font-display text-lg text-[var(--ink)]">
                 五库命中
@@ -518,7 +494,7 @@ export function CompanionChat() {
             </div>
             {scanning ? (
               <span className="rag-scan-badge text-[10px] tracking-wider text-[var(--orange-deep)]">
-                扫描中…
+                检索中…
               </span>
             ) : hits.length > 0 ? (
               <span className="rounded-sm bg-[var(--orange-fog)] px-2 py-0.5 text-[10px] text-[var(--orange-deep)]">
@@ -529,7 +505,7 @@ export function CompanionChat() {
 
           {hits.length === 0 && !scanning ? (
             <p className="text-xs leading-6 text-[var(--muted)]">
-              提问后此处闪现「答疑知识库 / 客舱案例库」命中片段，证明学伴有据可依。
+              提问后，此处展示相关依据。
             </p>
           ) : null}
 
@@ -558,7 +534,7 @@ export function CompanionChat() {
                 <p className="mt-1.5 font-display text-sm text-[var(--ink)]">
                   {h.title}
                 </p>
-                <p className="mt-1.5 line-clamp-3 text-[11px] leading-5 text-[var(--muted)]">
+                <p className="mt-1.5 text-[11px] leading-5 text-[var(--muted)]">
                   「{h.quote}」
                 </p>
                 <p className="mt-1.5 text-[10px] text-[var(--muted)]">

@@ -160,9 +160,9 @@ body {
 }
 
 .forum-stage {
-  /* 扣除顶栏 / 故事条 / 页眉后的视口高度，避免右侧把整页撑很长 */
-  height: min(68dvh, 720px);
-  min-height: 420px;
+  /* 讨论舱占满可视区，大屏投屏也能看清整串跟帖 */
+  height: min(84dvh, 960px);
+  min-height: 560px;
 }
 
 .forum-rail,
@@ -213,12 +213,12 @@ body {
   }
 
   .forum-rail {
-    max-height: 280px;
+    max-height: 240px;
   }
 
   .forum-cabin {
-    height: min(58dvh, 560px);
-    min-height: 360px;
+    height: min(72dvh, 720px);
+    min-height: 480px;
   }
 }
 
@@ -1652,6 +1652,65 @@ body {
   50% {
     opacity: 1;
     transform: scaleY(1);
+  }
+}
+
+/* 学情 · 近一个月参与度 */
+.engage-panel {
+  box-shadow: 0 18px 52px rgba(196, 92, 26, 0.1);
+}
+
+.engage-panel-glow {
+  position: absolute;
+  left: -12%;
+  top: -30%;
+  width: 48%;
+  height: 80%;
+  background: radial-gradient(
+    ellipse,
+    rgba(232, 120, 47, 0.18),
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: embark-pulse-b 5.5s ease-in-out infinite;
+}
+
+.engage-panel-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.35;
+  background-image:
+    linear-gradient(rgba(232, 120, 47, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232, 120, 47, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 88%);
+  pointer-events: none;
+}
+
+.engage-kpi {
+  animation: rise-in 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.engage-discuss-shine {
+  position: absolute;
+  right: -20%;
+  top: -40%;
+  width: 70%;
+  height: 90%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.28),
+    transparent 62%
+  );
+  pointer-events: none;
+  animation: embark-pulse-b 4.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .engage-kpi,
+  .engage-panel-glow,
+  .engage-discuss-shine {
+    animation: none !important;
   }
 }
 

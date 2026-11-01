@@ -42,6 +42,16 @@ type Analytics = {
     learning_issues_7d: number;
     quiz_issues_7d: number;
   };
+  engagement?: {
+    since: string;
+    days: number;
+    active_students: number;
+    activity_events: number;
+    active_classes: number;
+    forum_topics: number;
+    forum_participants: number;
+    mix: { qa: number; forum: number; tasks: number; works: number };
+  };
   student_count: number;
   untyped?: number;
   type_dist: TypeDist;
@@ -138,9 +148,165 @@ export function AnalyticsDashboard() {
     data.task_status.done,
     1,
   );
+  const eng = data.engagement;
+  const mix = eng?.mix;
+  const mixTotal = Math.max(
+    1,
+    (mix?.qa ?? 0) + (mix?.forum ?? 0) + (mix?.tasks ?? 0) + (mix?.works ?? 0),
+  );
+  const mixBars = mix
+    ? [
+        { key: "答疑", n: mix.qa, color: "#e8782f" },
+        { key: "研讨", n: mix.forum, color: "#c45c1a" },
+        { key: "任务", n: mix.tasks, color: "#f08a3a" },
+        { key: "成果", n: mix.works, color: "#f6c79a" },
+      ]
+    : [];
 
   return (
     <div className="space-y-6">
+      {/* 参与度 · 近一个月（学习通同款讲故事口径） */}
+      {eng ? (
+        <section className="engage-panel relative overflow-hidden rounded-sm border border-[var(--glass-border)] bg-white/90 p-5 md:p-6">
+          <div className="engage-panel-glow" aria-hidden />
+          <div className="engage-panel-grid" aria-hidden />
+          <div className="relative z-10 space-y-5">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-[10px] tracking-[0.3em] text-[var(--orange)]">
+                  参与度概览 · 近 {eng.days} 天
+                </p>
+                <h3 className="mt-1 font-display text-2xl text-[var(--ink)] md:text-3xl">
+                  课堂温度看得见
+                </h3>
+                <p className="mt-1 max-w-lg text-xs leading-6 text-[var(--muted)] md:text-sm">
+                  活跃人数与话题讨论一眼讲清「谁在学、学得多深」。
+                </p>
+              </div>
+              <p className="rounded-sm border border-[var(--orange)]/25 bg-[var(--orange-fog)]/70 px-3 py-1.5 text-[10px] tracking-wider text-[var(--orange-deep)]">
+                LIVE · 实时库
+              </p>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[1.35fr_0.9fr]">
+              <div className="grid gap-3 sm:grid-cols-3">
+                {[
+                  {
+                    label: "活跃学生",
+                    value: eng.active_students,
+                    unit: "人",
+                    hint: "答疑 / 研讨 / 任务 / 登录",
+                    delay: 0,
+                  },
+                  {
+                    label: "师生活动",
+                    value: eng.activity_events,
+                    unit: "次",
+                    hint: "全链路互动合计",
+                    delay: 80,
+                  },
+                  {
+                    label: "活跃班级",
+                    value: eng.active_classes,
+                    unit: "个",
+                    hint: "有动作的班级",
+                    delay: 160,
+                  },
+                ].map((c) => (
+                  <div
+                    key={c.label}
+                    className="engage-kpi group relative overflow-hidden rounded-sm border border-[var(--line)] bg-gradient-to-b from-white to-[var(--orange-fog)]/50 px-4 py-4 transition hover:-translate-y-0.5 hover:border-[var(--orange)]/45 hover:shadow-[0_14px_32px_rgba(232,120,47,0.14)]"
+                    style={{ animationDelay: `${c.delay}ms` }}
+                  >
+                    <p className="text-[10px] tracking-[0.22em] text-[var(--muted)]">
+                      {c.label}
+                    </p>
+                    <p className="mt-2 flex items-baseline gap-1">
+                      <span className="font-display text-3xl tabular-nums text-[var(--orange)] md:text-4xl">
+                        {c.value.toLocaleString("zh-CN")}
+                      </span>
+                      <span className="text-xs text-[var(--muted)]">
+                        {c.unit}
+                      </span>
+                    </p>
+                    <p className="mt-2 text-[10px] leading-5 text-[var(--muted)]">
+                      {c.hint}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="engage-kpi engage-discuss relative overflow-hidden rounded-sm border border-[var(--orange)]/30 bg-gradient-to-br from-[var(--orange)] to-[var(--orange-deep)] p-4 text-white shadow-[0_16px_40px_rgba(196,92,26,0.28)]"
+                style={{ animationDelay: "220ms" }}
+              >
+                <div className="engage-discuss-shine" aria-hidden />
+                <p className="relative z-10 text-[10px] tracking-[0.28em] text-white/75">
+                  研讨社区 · 讨论
+                </p>
+                <div className="relative z-10 mt-4 grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] text-white/70">话题发布</p>
+                    <p className="mt-1 font-display text-3xl tabular-nums md:text-4xl">
+                      {eng.forum_topics.toLocaleString("zh-CN")}
+                      <span className="ml-1 text-sm font-normal text-white/70">
+                        个
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-white/70">参与讨论</p>
+                    <p className="mt-1 font-display text-3xl tabular-nums md:text-4xl">
+                      {eng.forum_participants.toLocaleString("zh-CN")}
+                      <span className="ml-1 text-sm font-normal text-white/70">
+                        人
+                      </span>
+                    </p>
+                  </div>
+                </div>
+                <p className="relative z-10 mt-4 text-[11px] leading-5 text-white/80">
+                  发帖 + 跟帖去重，突出云思坞研讨站参与面。
+                </p>
+              </div>
+            </div>
+
+            {mixBars.length > 0 ? (
+              <div className="rounded-sm border border-[var(--line)] bg-white/85 px-4 py-3">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-[10px] tracking-[0.2em] text-[var(--muted)]">
+                    活动构成
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-[10px] text-[var(--muted)]">
+                    {mixBars.map((b) => (
+                      <span key={b.key} className="inline-flex items-center gap-1.5">
+                        <span
+                          className="inline-block h-2 w-2 rounded-sm"
+                          style={{ background: b.color }}
+                        />
+                        {b.key} {b.n}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex h-3 overflow-hidden rounded-sm bg-[var(--orange-fog)]">
+                  {mixBars.map((b) => (
+                    <div
+                      key={b.key}
+                      className="h-full transition-all duration-700"
+                      style={{
+                        width: `${Math.max(b.n > 0 ? 2 : 0, Math.round((b.n / mixTotal) * 100))}%`,
+                        background: b.color,
+                      }}
+                      title={`${b.key} ${b.n}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
+
       {/* 主视觉：灯牌 + 雷达 */}
       <div className="profile-hero relative overflow-hidden rounded-sm border border-[var(--glass-border)] bg-white/85 p-5 md:p-6">
         <div className="profile-hero-glow" aria-hidden />

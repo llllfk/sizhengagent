@@ -33,7 +33,7 @@ const teacherStory: StoryStep[] = [
 ];
 
 const communityStory: StoryStep[] = [
-  { href: "/forum", label: "论坛", tip: "观点碰撞" },
+  { href: "/forum", label: "云思坞", tip: "研讨站" },
   { href: "/highlights", label: "精华", tip: "回灌学伴" },
 ];
 

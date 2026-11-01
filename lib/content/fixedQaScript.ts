@@ -68,19 +68,36 @@ export const FIXED_QA_TURNS: FixedQaTurn[] = [
       ["如何回应"],
       ["不会回应"],
     ],
+    /** 末轮要约：不再默认进教师队列，等学员下一句再决定 */
     answer: [
-      "本轮追问已达上限。你的思考已经触及关键张力，但现场预案仍不够可执行。",
-      "系统将生成「疑难清单」推送至教师工作台，由老师做专题答疑与价值引导。",
-      "你可以补充一句：最希望老师帮你澄清的一点是什么？",
+      "这一轮先聊到这里。若问题已经想通，回复「已解决」即可，不必转给老师。",
+      "若还有疑问，请用一句话写下最想请老师澄清的一点，我再帮你转给老师。",
       "—— AI生成内容，供讨论参考",
     ].join("\n"),
   },
 ];
 
+/** 满轮后的转接邀请（开放题与固定脚本共用口径） */
+export const QA_ESCALATE_OFFER = [
+  "这一轮先聊到这里。若问题已经想通，回复「已解决」即可，不必转给老师。",
+  "若还有疑问，请用一句话写下最想请老师澄清的一点，我再帮你转给老师。",
+].join("\n");
+
+export const QA_RESOLVED_REPLY =
+  "好的，这轮就先到这里。之后若又有新疑问，随时再来问，或点「新开一轮」。";
+
 export const FIXED_QA_ESCALATE_HINT =
   "已转给老师。老师可在线答复；本页会自动同步。也可新开一轮继续问学伴。";
 
 export const FIXED_QA_DEMO_PROMPTS = FIXED_QA_TURNS.map((t) => t.question);
+
+/** 学员表示已解决 / 不需要老师 → 不转接 */
+export function studentDeclinesTeacher(text: string): boolean {
+  const t = text.replace(/\s+/g, "");
+  return /已解决|没有了|没问题了|想通了|明白了|清楚了|懂了|可以了|没事了|不用转|不需要老师|不用老师|不必转|已想通|解决了|没有疑问|没疑问/.test(
+    t,
+  );
+}
 
 function norm(s: string) {
   return s.replace(/\s+/g, "");
@@ -121,9 +138,14 @@ export function fixedScriptStartIndex(openingQuestion: string): number | null {
   return matchFixedQuestion(openingQuestion)?.index ?? null;
 }
 
+export type FixedFollowupPhase = "script" | "offer" | "decide";
+
 /**
  * 固定链路追问：从开场命中的脚本下标继续往下推。
  * sessionRound = 学员已作答次数（开场后为 0）
+ * - script：正常脚本答
+ * - offer：末轮邀请，是否转老师由下一句决定（不自动转）
+ * - decide：学员已回复邀请，由上层根据文案决定是否转接
  */
 export function matchFixedFollowup(
   openingQuestion: string,
@@ -131,15 +153,23 @@ export function matchFixedFollowup(
 ): {
   index: number;
   turn: FixedQaTurn;
-  shouldEscalate: boolean;
+  phase: FixedFollowupPhase;
 } | null {
   const start = fixedScriptStartIndex(openingQuestion);
   if (start === null) return null;
-  const next = Math.min(start + sessionRound + 1, FIXED_QA_TURNS.length - 1);
-  const shouldEscalate = next >= FIXED_QA_TURNS.length - 1;
+  const lastIdx = FIXED_QA_TURNS.length - 1;
+  const projected = start + sessionRound + 1;
+  if (projected > lastIdx) {
+    return {
+      index: lastIdx,
+      turn: FIXED_QA_TURNS[lastIdx]!,
+      phase: "decide",
+    };
+  }
+  const next = Math.min(projected, lastIdx);
   return {
     index: next,
     turn: FIXED_QA_TURNS[next]!,
-    shouldEscalate,
+    phase: next >= lastIdx ? "offer" : "script",
   };
 }

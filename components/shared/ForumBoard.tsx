@@ -153,7 +153,8 @@ export function ForumBoard() {
   }
 
   async function removeReply(r: ForumReply) {
-    if (!myIds.includes(r.author_id)) {
+    const mine = myIds.includes(r.author_id);
+    if (!mine && !isTeacher) {
       setFlash("只能删除自己的跟帖");
       return;
     }
@@ -354,7 +355,7 @@ export function ForumBoard() {
             </div>
           ) : (
             <div className="relative flex min-h-0 flex-1 flex-col animate-rise">
-              <header className="forum-cabin-head shrink-0 space-y-2.5 border-b border-[var(--line)] bg-white/70 px-4 py-3.5 backdrop-blur-sm md:px-5">
+              <header className="forum-cabin-head shrink-0 space-y-1.5 border-b border-[var(--line)] bg-white/70 px-4 py-2.5 backdrop-blur-sm md:px-5">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="flex min-w-0 flex-wrap gap-1.5">
                     {detail.tags.map((tag) => (
@@ -388,10 +389,10 @@ export function ForumBoard() {
                     ) : null}
                   </div>
                 </div>
-                <h2 className="font-display text-xl leading-snug text-[var(--ink)] md:text-2xl">
+                <h2 className="font-display text-lg leading-snug text-[var(--ink)] md:text-xl">
                   {detail.title}
                 </h2>
-                <p className="line-clamp-3 text-sm leading-relaxed text-[var(--muted)] md:line-clamp-4">
+                <p className="line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
                   {detail.body}
                 </p>
                 <p className="text-[11px] text-[var(--muted)]">
@@ -412,6 +413,7 @@ export function ForumBoard() {
                 ) : (
                   detail.replies.map((r, i) => {
                     const mine = myIds.includes(r.author_id);
+                    const canDelete = mine || isTeacher;
                     return (
                       <article
                         key={r.reply_id}
@@ -435,7 +437,7 @@ export function ForumBoard() {
                           <span className="text-[var(--muted)]">
                             {timeAgo(r.created_at)}
                           </span>
-                          {mine ? (
+                          {canDelete ? (
                             <button
                               type="button"
                               disabled={busy}

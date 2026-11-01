@@ -172,6 +172,25 @@ export async function requireQaActorId(): Promise<string> {
   return sid;
 }
 
+/**
+ * 课中五式参与者：学生正式参与；教师可同屏观看并发言（演示免切账号）。
+ */
+export async function requireInteractiveActor(): Promise<SessionUser> {
+  return requireQaActor();
+}
+
+export async function requireInteractiveActorId(): Promise<string> {
+  return requireQaActorId();
+}
+
+/** 互动发言显示名：教师带「老师」标记，便于课堂识别 */
+export function interactiveDisplayName(user: SessionUser, studentName?: string | null) {
+  if (user.role === "teacher") {
+    return `${user.display_name || user.username}（老师）`;
+  }
+  return studentName || user.display_name || user.username;
+}
+
 export async function requireUser(
   portal?: PortalKind | null,
 ): Promise<SessionUser> {
