@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 把上级 `4视频/` 成片上传到 Coze S3（works/gallery/{id}.mp4）
  * 需要 .env.local 已填写 STORAGE_URL / BUCKET / AK / SK
  *
@@ -23,7 +23,7 @@ const clips = [
   { id: "qihang-blue", file: "5.启航逐梦蓝天.mp4" },
   { id: "rescue-nation", file: "2.国家级：紧急救助.mp4" },
   { id: "walk-prov", file: "4.省级和校级一等奖：行走的思政课.mp4" },
-  { id: "lion-nation", file: "醒狮-新1.mp4" },
+  { id: "lion-nation", file: "醒狮-新2.mp4" },
   { id: "lion-school", file: "1.校级一等奖醒狮 文化安全.mp4" },
   { id: "grow-up", file: "5.国家级优秀：长大后就成了您.mp4" },
   { id: "social", file: "3.国家级：社会服务.mp4" },

@@ -1,4 +1,4 @@
-/** 成果库成片元数据（可被客户端引用；勿在此 import fs） */
+﻿/** 成果库成片元数据（可被客户端引用；勿在此 import fs） */
 export type WorkClip = {
   id: string;
   /** 相对 `4视频/` 的原始文件名（打包源） */
@@ -35,7 +35,7 @@ export function galleryPublicRel(id: string): string {
 export const WORKS_GALLERY: WorkClip[] = [
   {
     id: "lion-nation",
-    file: "醒狮-新1.mp4",
+    file: "醒狮-新2.mp4",
     title: "醒狮·少年路",
     award: "国家级·教育部「魅力非遗」优秀原创作品",
     tag: "文化自信",
